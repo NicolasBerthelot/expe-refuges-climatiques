@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Refuges climatiques – maquette cartes.gouv.fr</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="maplibre-gl.css">
+<style>
+/* VOICE  : service public sobre, précis, rassurant : la page catalogue d'un jeu de données sur cartes.gouv.fr
+   IDEA   : une fiche « jeu de données » du catalogue cartes.gouv.fr, dont la carte est l'objet principal
+   PICTURE: la France dessinée par 42 411 espaces potentiels en gris, les 662 refuges en trois bleus/orange de fraîcheur
+   COLOUR and TYPE : DSFR — bleu France #000091, gris 161616, fonds blanc / gris 975 ; Marianne 400/500/700
+   LAYOUT : en-tête DSFR, fil d'Ariane, en-tête de jeu de données + chiffres clés, onglets (carte, tableau, stats, qualité, contributions, à propos), pied DSFR */
+:root{color-scheme:light dark;
+--bg:light-dark(#fff,#161616);--alt:light-dark(#f6f6f6,#1e1e1e);--alt2:light-dark(#eee,#242424);--line:light-dark(#ddd,#3a3a3a);
+--ink:light-dark(#161616,#cecece);--ink2:light-dark(#666,#929292);--blue:light-dark(#000091,#8585f6);--blue-h:light-dark(#1212ff,#b1b1f9);
+--blue-t:light-dark(#e3e3fd,#1b1b35);--blue-tt:light-dark(#f5f5fe,#1b1b35);--on-blue:light-dark(#fff,#161616);
+--info:light-dark(#0063cb,#518fff);--info-t:light-dark(#e8edff,#1d2437);--warn:light-dark(#b34000,#fc5d00);--warn-t:light-dark(#ffe9e6,#3b1d14);
+--ok:light-dark(#18753c,#27a658);--ok-t:light-dark(#b8fec9,#19271c);--err:light-dark(#ce0500,#ff5655);
+--f0:light-dark(#000091,#8c8cff);--f1:light-dark(#417dc4,#6ba3e8);--f2:light-dark(#d1622e,#f08a5d)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Marianne,arial,sans-serif;overflow-x:clip}
+a{color:var(--blue);text-underline-offset:3px}a:hover{color:var(--blue-h)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid #0a76f6;outline-offset:2px}
+.wrap{max-width:1248px;margin:0 auto;padding:0 max(2.5vw,16px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+svg.i{width:1.1em;height:1.1em;fill:currentColor;vertical-align:-.2em;flex:none}
+/* en-tête DSFR */
+.hd{border-bottom:1px solid var(--line);box-shadow:0 6px 18px -12px rgba(0,0,18,.25)}
+.hd-body{display:flex;align-items:center;gap:24px;padding-block:16px;flex-wrap:wrap}
+.marque{margin:0;font-weight:700;font-size:15px;line-height:1.05;text-transform:uppercase;letter-spacing:-.01em;padding-top:4px}
+.marque small{display:block;text-transform:none;font-weight:400;font-size:11px;font-style:italic;margin-top:6px;letter-spacing:0;line-height:1.2}
+.svc{flex:1}.svc-t{display:flex;gap:10px;align-items:center;font-size:20px;font-weight:700;margin:0;color:var(--ink);text-decoration:none}
+.svc p{margin:2px 0 0;font-size:14px;color:var(--ink2)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;text-transform:uppercase;padding:0 6px;border-radius:4px;line-height:20px;background:var(--alt2);color:var(--ink)}
+.b-new{background:var(--warn-t);color:var(--warn)}.b-info{background:var(--info-t);color:var(--info)}.b-ok{background:var(--ok-t);color:var(--ok)}.b-blue{background:var(--blue-t);color:var(--blue)}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 16px;border:0;background:var(--blue);color:var(--on-blue);font-weight:500;cursor:pointer;text-decoration:none;font-size:15px;line-height:1.3}
+.btn:hover{background:var(--blue-h);color:var(--on-blue)}
+.btn.sec{background:transparent;color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}.btn.sec:hover{background:var(--blue-tt)}
+.btn.ter{background:transparent;color:var(--blue);box-shadow:inset 0 0 0 1px var(--line)}.btn.ter:hover{background:var(--alt)}
+.btn.sm{min-height:32px;padding:4px 12px;font-size:14px}
+.btn[disabled]{background:var(--alt2);color:var(--ink2);box-shadow:none;cursor:not-allowed}
+.nav{display:flex;gap:4px;overflow-x:auto;border-top:1px solid var(--line)}
+.nav a{flex:none;padding:14px 16px;font-size:15px;color:var(--ink);text-decoration:none}
+.nav a[aria-current]{color:var(--blue);box-shadow:inset 0 -2px 0 var(--blue);font-weight:500}
+.nav a:hover{background:var(--alt)}
+.notice{background:var(--info-t);color:var(--ink);font-size:14px}
+.notice .wrap{display:flex;gap:12px;padding-block:12px;align-items:flex-start}.notice svg{color:var(--info);margin-top:2px}
+.crumb{font-size:13px;color:var(--ink2);margin:20px 0 0}.crumb a{color:var(--ink2)}
+/* en-tête du jeu */
+.ds{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:40px;padding-block:20px 32px}
+.tags{display:flex;gap:8px;flex-wrap:wrap}
+h1{font-size:clamp(30px,4vw,40px);line-height:1.1;margin:14px 0 12px;text-wrap:balance}
+.lead{font-size:18px;line-height:1.55;margin:0 0 20px;max-width:62ch}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px;margin:0}
+.meta dt{color:var(--ink2)}.meta dd{margin:0}
+.kf{background:var(--alt);padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;align-content:start}
+.kf div b{display:block;font-size:clamp(26px,3vw,34px);line-height:1.1;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kf div span{font-size:14px;color:var(--ink2)}
+.kf .acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding-top:4px}
+/* onglets */
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-top:8px}
+.tabs button{flex:none;border:0;background:var(--alt2);padding:10px 16px;font-weight:500;font-size:15px;cursor:pointer;display:flex;gap:8px;align-items:center;min-height:44px}
+.tabs button[aria-selected=true]{background:var(--bg);color:var(--blue);box-shadow:inset 0 2px 0 var(--blue),1px 0 0 var(--line),-1px 0 0 var(--line)}
+.panel{padding-block:24px 48px}
+.panel[hidden]{display:none}
+/* carte */
+.mapgrid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;border:1px solid var(--line);min-height:680px}
+.filters{border-right:1px solid var(--line);padding:16px;overflow:auto;max-height:740px;font-size:14px}
+.filters h3{font-size:15px;margin:18px 0 8px}.filters h3:first-child{margin-top:0}
+.chk{display:flex;align-items:center;gap:10px;min-height:32px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--blue);margin:0}
+.chk .n{margin-left:auto;color:var(--ink2);font-variant-numeric:tabular-nums}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:16px;padding:4px 12px;font-size:13px;cursor:pointer;min-height:32px}
+.chip[aria-pressed=true]{background:var(--blue-t);color:var(--blue);border-color:var(--blue)}
+.inp{width:100%;min-height:40px;padding:8px 12px;border:0;border-radius:4px 4px 0 0;background:var(--alt2);box-shadow:inset 0 -2px 0 var(--ink);font-size:16px}
+select.inp{appearance:auto}
+textarea.inp{min-height:80px;resize:vertical}
+.tgl{display:flex;align-items:center;gap:10px;min-height:36px;cursor:pointer}
+.tgl input{appearance:none;width:40px;height:24px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--blue);position:relative;margin:0;flex:none;cursor:pointer}
+.tgl input::after{content:"";position:absolute;width:24px;height:24px;border-radius:50%;left:0;top:0;background:var(--bg);box-shadow:inset 0 0 0 1px var(--blue);transition:left .15s}
+.tgl input:checked{background:var(--blue)}.tgl input:checked::after{left:16px}
+.count{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mapbox{position:relative;min-height:680px;background:var(--alt)}
+#map{position:absolute;inset:0}
+.legend{position:absolute;left:12px;bottom:12px;background:var(--bg);padding:10px 12px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,18,.18);display:grid;gap:4px}
+.legend span{display:flex;align-items:center;gap:8px}.legend span[hidden]{display:none}
+.mode{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--blue);color:var(--on-blue);padding:8px 14px;font-size:14px;display:none;gap:12px;align-items:center;box-shadow:0 2px 8px rgba(0,0,18,.3);z-index:2}
+.mode.on{display:flex}.mode button{background:transparent;border:1px solid currentColor;color:inherit;padding:2px 10px;cursor:pointer}
+.fiche{position:absolute;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--bg);box-shadow:-4px 0 16px rgba(0,0,18,.18);overflow:auto;padding:20px;display:none;z-index:3;font-size:15px}
+.fiche.on{display:block}
+.fiche h2{font-size:22px;line-height:1.2;margin:8px 0 4px;padding-right:36px}
+.fiche .x{position:absolute;right:12px;top:12px;width:40px;height:40px;border:0;background:transparent;cursor:pointer;color:var(--blue)}
+.fiche h3{font-size:14px;text-transform:none;margin:18px 0 6px;color:var(--ink2);font-weight:500}
+.fiche ul{list-style:none;padding:0;margin:0;display:grid;gap:4px}
+.fiche li{display:flex;gap:8px;align-items:flex-start}
+.ok{color:var(--ok)}.no{color:var(--ink2)}
+.sub{color:var(--ink2);font-size:14px;margin:0}
+.alert{border-left:4px solid var(--warn);background:var(--warn-t);padding:10px 12px;font-size:14px;margin-top:14px}
+.alert.info{border-color:var(--info);background:var(--info-t)}
+.alert.ok{border-color:var(--ok);background:var(--ok-t);color:var(--ink)}
+.acts-col{display:grid;gap:8px;margin-top:16px}
+.form{display:grid;gap:14px;margin-top:12px}
+.form fieldset{border:0;padding:0;margin:0;display:grid;gap:4px}
+.form legend,.form label.l{font-weight:500;font-size:14px;margin-bottom:4px;padding:0}
+.form .hint{font-size:12px;color:var(--ink2)}
+.radios{display:flex;flex-wrap:wrap;gap:4px 14px}
+.nomap{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--ink2)}
+/* tableau */
+.tbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+.tbar .inp{max-width:360px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-weight:700;background:var(--alt2);padding:10px 12px;white-space:nowrap;cursor:pointer;user-select:none}
+th[aria-sort]::after{content:" ▾";color:var(--blue)}th[aria-sort=ascending]::after{content:" ▴"}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:nth-child(even){background:var(--alt)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.lnk{border:0;background:none;color:var(--blue);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0;text-align:left;font-weight:500}
+.pager{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.pager button{min-width:40px;min-height:40px;border:0;background:transparent;cursor:pointer}.pager button[aria-current]{background:var(--blue);color:var(--on-blue)}
+/* stats */
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.card{border:1px solid var(--line);padding:20px 24px;background:var(--bg)}
+.card h2{font-size:18px;margin:0 0 4px}.card p.sub{margin-bottom:14px}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 3.5em;gap:10px;align-items:center;font-size:14px}
+.bar i{display:block;height:14px;background:var(--blue);min-width:2px}
+.bar b{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.fig{position:relative;min-height:260px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.wide{grid-column:1/-1}
+/* qualité / contributions */
+.qa{display:grid;gap:12px}
+.qa details{border:1px solid var(--line);background:var(--bg)}
+.qa summary{display:flex;gap:16px;align-items:center;padding:14px 18px;cursor:pointer;list-style:none}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary b{font-size:24px;color:var(--warn);min-width:2.6em;font-variant-numeric:tabular-nums}
+.qa summary span{flex:1}.qa summary small{display:block;color:var(--ink2);font-size:13px}
+.qa .lst{padding:4px 18px 16px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px}
+.steps{display:grid;gap:0;counter-reset:s;padding:0;margin:0;list-style:none}
+.steps li{display:grid;grid-template-columns:40px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.steps li::before{counter-increment:s;content:counter(s);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--alt2);font-weight:700}
+.steps li.now::before{background:var(--blue);color:var(--on-blue)}
+.steps b{display:block}
+.empty{padding:32px;text-align:center;color:var(--ink2);border:1px dashed var(--line)}
+.ft{border-top:2px solid var(--blue);margin-top:24px;padding-block:32px;font-size:14px}
+.ft .wrap{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start}
+.ft p{margin:0 0 8px;color:var(--ink2)}
+.ft-b{border-top:1px solid var(--line);margin-top:20px;padding-top:12px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink2);grid-column:1/-1}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;font-size:14px;z-index:20;display:none;max-width:90vw}
+.toast.on{display:block}
+@media(max-width:900px){.ds{grid-template-columns:1fr;gap:24px}.mapgrid{grid-template-columns:1fr}.filters{border-right:0;border-bottom:1px solid var(--line);max-height:none}.mapbox{min-height:520px;order:-1;border-bottom:1px solid var(--line)}.grid2{grid-template-columns:1fr}.fiche{width:100%}}
+@media(max-width:600px){.ft .wrap{grid-template-columns:1fr}.bar{grid-template-columns:minmax(0,8em) minmax(0,1fr) 3em}table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 12px;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;color:var(--ink2)}.stack td:empty{display:none}.legend{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="hd">
+  <div class="wrap hd-body">
+    <p class="marque" aria-label="République française">République<br>française<small>Liberté<br>Égalité<br>Fraternité</small></p>
+    <div class="svc">
+      <a class="svc-t" href="#carte">cartes.gouv.fr <span class="badge b-new">Maquette</span></a>
+      <p>Le service public des cartes et données du territoire</p>
+    </div>
+    <div class="tools"><a class="btn ter sm" href="#a-propos">Aide</a><button class="btn sec sm" type="button" id="whoBtn">Mon espace</button></div>
+  </div>
+  <nav class="wrap nav" aria-label="Menu principal">
+    <a href="#carte">Explorer les cartes</a><a href="#carte" aria-current="page">Rechercher une donnée</a><a href="#statistiques">Créer une carte</a><a href="#a-propos">Publier une donnée</a><a href="#contributions">Collaborer</a>
+  </nav>
+</header>
+<div class="notice" role="note"><div class="wrap"><svg class="i" viewBox="0 0 24 24"><path data-ic="information-line"/></svg><p style="margin:0"><b>Maquette de travail, non officielle.</b> Cette page préfigure l'hébergement de la cartographie des refuges climatiques sur cartes.gouv.fr. Données issues de la carte collaborative portée par TRIBU (projet ADEME), export du 17 novembre 2026. Les contributions faites ici sont mises en attente jusqu'à l'ouverture du guichet Espace collaboratif.</p></div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="#carte">Accueil</a> › <a href="#carte">Rechercher une donnée</a> › Refuges climatiques</p>
+  <section class="ds">
+    <div>
+      <div class="tags"><span class="badge b-blue">Jeu de données</span><span class="badge b-info">Collaboratif</span><span class="badge">Adaptation au changement climatique</span></div>
+      <h1>Refuges climatiques</h1>
+      <p class="lead">Lieux frais et ouverts au public où se mettre à l'abri pendant les vagues de chaleur : parcs, médiathèques, lieux de culte, bords d'eau… repérés et qualifiés par les habitants et les collectivités.</p>
+      <dl class="meta">
+        <dt>Producteur</dt><dd>TRIBU, projet financé par l'ADEME, avec Toulouse Métropole, le LISST et le LMDC</dd>
+        <dt>Diffusion</dt><dd>IGN, via la Géoplateforme (flux WFS et tuiles vectorielles prévus)</dd>
+        <dt>Mise à jour</dt><dd>17 novembre 2026 <span class="sub" style="display:inline">· base multipliée par 7 en un an</span></dd>
+        <dt>Couverture</dt><dd>France, surtout métropolitaine</dd>
+        <dt>Licence</dt><dd>À définir (Licence Ouverte 2.0 ou ODbL)</dd>
+      </dl>
+    </div>
+    <aside class="kf" aria-label="Chiffres clés">
+      <div><b id="kRef">662</b><span>refuges qualifiés</span></div>
+      <div><b id="kPot">42 411</b><span>espaces potentiels</span></div>
+      <div><b id="kTF">302</b><span>refuges « très frais »</span></div>
+      <div><b id="kDep">76</b><span>départements couverts</span></div>
+      <div class="acts">
+        <button class="btn" type="button" id="addBtn"><svg class="i" viewBox="0 0 24 24"><path data-ic="add-line"/></svg>Proposer un refuge</button>
+        <button class="btn sec" type="button" id="dlBtn"><svg class="i" viewBox="0 0 24 24"><path data-ic="download-line"/></svg>Télécharger (GeoJSON)</button>
+        <button class="btn sec" type="button" disabled title="Disponible après publication sur la Géoplateforme">Flux WFS · bientôt</button>
+      </div>
+    </aside>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Vues du jeu de données">
+    <button role="tab" id="t-carte" aria-controls="carte" aria-selected="true"><svg class="i" viewBox="0 0 24 24"><path data-ic="road-map-line"/></svg>Carte</button>
+    <button role="tab" id="t-tableau" aria-controls="tableau" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path data-ic="table-line"/></svg>Tableau</button>
+    <button role="tab" id="t-statistiques" aria-controls="statistiques" aria-selected="false">Statistiques</button>
+    <button role="tab" id="t-qualite" aria-controls="qualite" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path data-ic="error-warning-line"/></svg>Qualité</button>
+    <button role="tab" id="t-contributions" aria-controls="contributions" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path data-ic="team-line"/></svg>Contributions <span class="badge b-new" id="cBadge">0</span></button>
+    <button role="tab" id="t-a-propos" aria-controls="a-propos" aria-selected="false">À propos</button>
+  </div>
+
+  <section class="panel" id="carte" role="tabpanel" aria-labelledby="t-carte">
+    <div class="mapgrid">
+      <form class="filters" id="filters" onsubmit="return false">
+        <label class="sr" for="q">Rechercher</label>
+        <input class="inp" id="q" type="search" placeholder="Nom, commune…" autocomplete="off">
+        <h3>Ressenti de fraîcheur</h3><div id="fF"></div>
+        <h3>Période confortable</h3><div id="fP"></div>
+        <h3>Doit offrir</h3><div id="fS"></div>
+        <h3>Eau</h3><div id="fE"></div>
+        <h3>Type d'espace</h3><div class="chips" id="fT"></div>
+        <h3><label for="fD">Département</label></h3><select class="inp" id="fD"><option value="">Tous</option></select>
+        <h3><label for="fondSel">Fond de carte</label></h3>
+        <select class="inp" id="fondSel"><option value="plan">Plan IGN</option><option value="ortho">Photographies aériennes</option><option value="none">Contour simple</option></select>
+        <p class="sub" id="fondNote" hidden style="font-size:12px;margin-top:6px">Les fonds IGN ne peuvent pas être chargés ici : contour simple affiché.</p>
+        <h3>Couches</h3>
+        <label class="tgl"><input type="checkbox" id="lPot"> Espaces potentiels <span class="sub">(42 411)</span></label>
+        <label class="tgl"><input type="checkbox" id="lPend" checked> Propositions en attente</label>
+        <div class="count"><span><b id="nShown">662</b> refuges affichés</span><button class="btn ter sm" type="button" id="reset">Réinitialiser</button></div>
+      </form>
+      <div class="mapbox">
+        <div id="map" role="region" aria-label="Carte des refuges climatiques"></div>
+        <div class="mode" id="mode"><span>Cliquez sur la carte pour placer le nouveau refuge</span><button type="button" id="modeX">Annuler</button></div>
+        <div class="legend" aria-hidden="true">
+          <span><i class="dot" style="background:var(--f0)"></i>Très frais</span>
+          <span><i class="dot" style="background:var(--f1)"></i>Fraîcheur modérée</span>
+          <span><i class="dot" style="background:var(--f2)"></i>Faible fraîcheur</span>
+          <span><i class="dot" style="background:var(--bg);box-shadow:inset 0 0 0 2.5px var(--warn)"></i>Proposition en attente</span>
+          <span id="lgPot" hidden><i class="dot" style="background:#9a9a9a;width:6px;height:6px;margin:0 3px"></i>Espace potentiel</span>
+        </div>
+        <aside class="fiche" id="fiche" aria-live="polite"></aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tableau" role="tabpanel" aria-labelledby="t-tableau" hidden>
+    <div class="tbar">
+      <div style="flex:1;min-width:220px"><label class="sr" for="q2">Rechercher</label><input class="inp" id="q2" type="search" placeholder="Rechercher un refuge, une commune…"></div>
+      <p class="sub" style="margin:0"><span id="nTab">662</span> refuges · les filtres de la carte s'appliquent aussi ici</p>
+      <button class="btn sec sm" type="button" id="csvBtn"><svg class="i" viewBox="0 0 24 24"><path data-ic="download-line"/></svg>CSV</button>
+    </div>
+    <div class="scroll"><table class="stack"><thead><tr><th data-k="n">Nom</th><th data-k="c">Commune</th><th data-k="dep">Dép.</th><th data-k="f" aria-sort="ascending">Fraîcheur</th><th data-k="t">Type</th><th data-k="s">Services</th><th data-k="ep">Eau potable</th><th data-k="q">Qualité</th></tr></thead><tbody id="tb"></tbody></table></div>
+    <div class="pager" id="pager"></div>
+  </section>
+
+  <section class="panel" id="statistiques" role="tabpanel" aria-labelledby="t-statistiques" hidden>
+    <div class="grid2">
+      <div class="card wide"><h2>La base a été multipliée par 7 en un an, surtout pendant l'été 2026</h2><p class="sub">Refuges actifs dans chaque export sauvegardé, de novembre 2025 à novembre 2026</p><div class="fig" id="growth"></div></div>
+      <div class="card"><h2>Ressenti de fraîcheur</h2><p class="sub">Valeur la plus fraîche retenue quand plusieurs ont été saisies</p><div class="bars" id="sF"></div></div>
+      <div class="card"><h2>Types d'espaces</h2><p class="sub">Un refuge peut relever de plusieurs types</p><div class="bars" id="sT"></div></div>
+      <div class="card"><h2>Services disponibles</h2><p class="sub">Part des refuges qui déclarent chaque service</p><div class="bars" id="sS"></div></div>
+      <div class="card"><h2>Période confortable</h2><p class="sub">Part des refuges confortables à chaque moment de la journée</p><div class="bars" id="sP"></div></div>
+      <div class="card wide"><h2>Départements les mieux couverts</h2><p class="sub" id="sDsub"></p><div class="bars" id="sD"></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="qualite" role="tabpanel" aria-labelledby="t-qualite" hidden>
+    <p class="lead" style="font-size:17px">La position des refuges est fiable, mais la saisie libre laisse passer des valeurs contradictoires. Le futur guichet les empêchera par des listes de valeurs et des champs obligatoires. Ouvrez une ligne pour voir les fiches concernées.</p>
+    <div class="qa" id="qaList"></div>
+  </section>
+
+  <section class="panel" id="contributions" role="tabpanel" aria-labelledby="t-contributions" hidden>
+    <div class="alert info" style="margin:0 0 20px"><b>File d'attente provisoire.</b> En attendant le guichet « Refuges climatiques » de l'Espace collaboratif, les propositions, signalements et avis sont conservés ici. Les modérateurs les valident, puis la file s'exporte en GeoJSON au format du futur modèle de données pour être versée dans la base. <span id="storeNote"></span></div>
+    <div class="tbar"><p class="sub" style="margin:0;flex:1" id="cSum">Aucune contribution pour l'instant.</p>
+      <label class="sr" for="cFilt">Statut</label><select class="inp" id="cFilt" style="max-width:200px"><option value="">Tous les statuts</option><option>en attente</option><option>acceptée</option><option>refusée</option></select>
+      <button class="btn sec sm" type="button" id="cCopy">Copier en GeoJSON</button><button class="btn sec sm" type="button" id="cDl"><svg class="i" viewBox="0 0 24 24"><path data-ic="download-line"/></svg>Exporter</button></div>
+    <div id="cList"></div>
+  </section>
+
+  <section class="panel" id="a-propos" role="tabpanel" aria-labelledby="t-a-propos" hidden>
+    <div class="grid2">
+      <div class="card"><h2>D'où viennent les données</h2>
+        <p>La <a href="https://lesrefugesclimatiques.gogocarto.fr/">carte des refuges climatiques</a> est portée par TRIBU dans le cadre de l'Appel à communs « Sobriété et résilience des territoires » de l'ADEME, avec Toulouse Métropole comme premier territoire test et les laboratoires LISST et LMDC. Chacun peut y signaler un lieu où il trouve de la fraîcheur.</p>
+        <p>Les espaces potentiels (en gris) sont surtout issus de la BD TOPO de l'IGN : bibliothèques, parcs et jardins, musées, piscines, cinémas, baignades surveillées, centres commerciaux.</p></div>
+      <div class="card"><h2>Ce que contient une fiche</h2>
+        <ul style="padding-left:1.2em;margin:0;display:grid;gap:4px">
+          <li>Ressenti de fraîcheur (obligatoire) et qualité de l'ombrage</li>
+          <li>Période confortable : matin, après-midi, soir</li>
+          <li>Eau : étendue, jeux d'eau, fontaine, eau potable</li>
+          <li>Services : enfants, places assises, toilettes, gratuité, climatisation</li>
+          <li>Accessibilité, horaires, site, description, source de l'import</li></ul></div>
+      <div class="card wide"><h2>Feuille de route vers le guichet collaboratif</h2>
+        <ol class="steps">
+          <li class="now"><div><b>Maquette et données nettoyées</b><span class="sub">Novembre 2026 : cette page, GeoPackage normalisé, contrôles qualité.</span></div></li>
+          <li><div><b>Cadrage avec TRIBU et l'ADEME</b><span class="sub">Décembre 2026 : gouvernance, licence, avenir de GoGoCarto.</span></div></li>
+          <li><div><b>Publication sur cartes.gouv.fr</b><span class="sub">Janvier 2027 : dépôt du GeoPackage, flux WFS, tuiles vectorielles, fiche catalogue.</span></div></li>
+          <li><div><b>Base et guichet Espace collaboratif</b><span class="sub">Février 2027 : reprise des 662 refuges et des contributions de cette maquette.</span></div></li>
+          <li><div><b>Synchronisation et site public</b><span class="sub">Mars à mai 2027 : republication quotidienne, formulaire branché sur l'API collaborative.</span></div></li>
+          <li><div><b>Lancement avant l'été 2027</b><span class="sub">Juin 2027, avant les premières vagues de chaleur.</span></div></li>
+        </ol></div>
+    </div>
+  </section>
+</main>
+
+<footer class="ft">
+  <div class="wrap">
+    <p class="marque">République<br>française<small>Liberté<br>Égalité<br>Fraternité</small></p>
+    <div><p>Maquette de page catalogue pour cartes.gouv.fr, réalisée à partir des exports de la cartographie collaborative des refuges climatiques. Elle ne constitue pas un service en ligne officiel.</p>
+      <p>Fonds de carte : Plan IGN et photographies aériennes (Géoplateforme) ; à défaut, contour Natural Earth (domaine public). Police Marianne et composants inspirés du Système de design de l'État.</p></div>
+    <div class="ft-b"><span>Accessibilité : non évaluée (maquette)</span><span>Données : TRIBU / ADEME, export du 17/11/2026</span><a href="https://lesrefugesclimatiques.gogocarto.fr/">Carte collaborative d'origine</a></div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+<div id="dialog"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+{
+const IC={"table-line": "M21 3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h18Zm-7 7h-4v9h4v-9Zm6 0h-4v9h4v-9ZM8 10H4v9h4v-9Zm12-5H4v3h16V5Z", "error-warning-line": "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm1 11v2h-2v-2h2Zm0-8v6h-2V7h2Z", "check-line": "m10 15.172 9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414 4.95 4.95Z", "add-line": "M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z", "download-line": "M3 19h18v2H3v-2Zm10-5.828L19.071 7.1l1.414 1.414L12 17 3.515 8.515 4.929 7.1 11 13.17V2h2v11.172Z", "information-line": "M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10Zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM11 7h2v2h-2V7Zm0 4h2v6h-2v-6Z", "chat-3-line": "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10a9.956 9.956 0 0 1-4.709-1.176L2 22l1.176-5.291A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2Zm0 2a8 8 0 0 0-8 8c0 1.334.325 2.618.94 3.766l.349.653-.655 2.947 2.947-.655.653.35A7.955 7.955 0 0 0 12 20a8 8 0 0 0 0-16Z", "thumb-up-line": "m12.384.691 1.814.907a2.5 2.5 0 0 1 1.305 2.853L14.6 8H21a2 2 0 0 1 2 2v2.104a2 2 0 0 1-.15.762l-3.095 7.515a1 1 0 0 1-.925.619H2a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1h3.482a1 1 0 0 0 .817-.423L11.752.85a.5.5 0 0 1 .632-.159Zm.259 2.367L7.933 9.73c-.25.354-.57.644-.933.858V19h11.16L21 12.104V10h-6.4a2 2 0 0 1-1.938-2.493l.903-3.548a.5.5 0 0 0-.261-.571l-.661-.33Z", "edit-line": "M6.414 16 16.556 5.858l-1.414-1.414L5 14.586V16h1.414Zm.829 2H3v-4.243L14.435 2.322a1 1 0 0 1 1.414 0l2.829 2.829a1 1 0 0 1 0 1.414L7.243 18ZM3 20h18v2H3v-2Z", "close-line": "m12 10.6 4.95-4.96 1.4 1.4L13.42 12l4.96 4.95-1.4 1.4L12 13.42l-4.95 4.96-1.4-1.4L10.58 12 5.63 7.05l1.4-1.4z", "search-line": "m18.031 16.617 4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617Zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15Z", "filter-line": "M21 4v2h-1l-5 7.5V22H9v-8.5L4 6H3V4h18Zm-3.404 2H6.404L11 12.894V20h2v-7.106L17.596 6Z", "drop-line": "m12 .272 6.364 6.364a9 9 0 1 1-12.728 0L12 .272ZM12 3.1 7.05 8.05a7 7 0 1 0 9.9 0L12 3.1Z", "sun-line": "M13 20v3h-2v-3h2Zm5.364-3.05 2.121 2.121-1.414 1.414-2.121-2.121 1.414-1.414Zm-12.728 0 1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121ZM12 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm11 3v2h-3v-2h3ZM4 11v2H1v-2h3Zm.929-7.485L7.05 5.636 5.636 7.05 3.515 4.93v-.001l1.414-1.414Zm14.142-.001 1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121v-.001ZM13 1v3h-2V1h2Z", "team-line": "M12 11a5 5 0 0 1 5 5v6h-2v-6a3 3 0 0 0-2.824-2.995L12 13a3 3 0 0 0-2.995 2.824L9 16v6H7v-6a5 5 0 0 1 5-5Zm-6.5 3c.279 0 .55.033.81.094a5.947 5.947 0 0 0-.301 1.575L6 16v.086a1.492 1.492 0 0 0-.356-.08L5.5 16a1.5 1.5 0 0 0-1.493 1.356L4 17.5V22H2v-4.5A3.5 3.5 0 0 1 5.5 14Zm13 0a3.5 3.5 0 0 1 3.5 3.5V22h-2v-4.5a1.5 1.5 0 0 0-1.356-1.493L18.5 16c-.175 0-.343.03-.5.085V16c0-.666-.108-1.306-.309-1.904A3.42 3.42 0 0 1 18.5 14Zm-13-6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm13 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm-13 2a.5.5 0 1 0 0 1 .5.5 0 0 0 0-1Zm13 0a.5.5 0 1 0 0 1 .5.5 0 0 0 0-1ZM12 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z", "arrow-right-line": "m16.172 11-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2h12.172Z", "external-link-line": "M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6Zm11-3v8h-2V6.413l-7.793 7.794-1.414-1.414L17.585 5H13V3h8Z", "time-line": "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm1 3v5h4v2h-6V7h2Z", "map-pin-2-line": "M18.364 3.636a9 9 0 0 1 0 12.728L12 22.728l-6.364-6.364A9 9 0 0 1 18.364 3.636ZM7.05 5.051a7 7 0 0 0 0 9.899L12 19.9l4.95-4.95a7 7 0 0 0-9.9-9.9ZM12 8a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z", "road-map-line": "M21.775 4.341A.5.5 0 0 1 22 4.76V19l-7 3-6-3-6.303 2.701a.5.5 0 0 1-.697-.46V7l2-.857v12.824l5.065-2.17 6 3L20 17.68V4.857l1.303-.558a.5.5 0 0 1 .472.042Zm-5.532-1.583a6 6 0 0 1 0 8.485L12 15.485l-4.243-4.242a6 6 0 0 1 8.486-8.485ZM12 2.999a4 4 0 0 0-2.828 6.829L12 12.657l2.828-2.829A4 4 0 0 0 12 2.999Z", "flag-line": "M12.382 3a1 1 0 0 1 .894.553L14 5h6a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6.382a1 1 0 0 1-.894-.553L12 16H5v6H3V3h9.382Zm-.618 2H5v9h8.236l1 2H19V7h-6.236l-1-2Z"};
+for(const p of document.querySelectorAll('path[data-ic]'))p.setAttribute('d',IC[p.dataset.ic]||'');
+const ic=n=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const fmt=n=>n.toLocaleString('fr-FR');
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),3500)};
+const FR=['Très frais','Fraîcheur modérée','Faible fraîcheur'];
+const TY=['Espaces verts','Espaces publics extérieurs','Sport et loisirs','Culturel','Lieu de culte','Équipement de quartier','Autre'];
+const OM=['Très ombragé','Moyennement ombragé','Peu ombragé','Non concerné (intérieur)'];
+const SV=['Adapté aux enfants','Places assises','Toilettes publiques','Accès gratuit','Climatisé'];
+const PER=['Matin','Après-midi','Soir'];
+const EAU=["Étendue d'eau","Jeux d'eau, baignade",'Fontaine'];
+const POT=['Espace vert','Sport et loisirs','Culturel','Équipement de quartier','Autre'];
+const QA={qa_fraicheur_multiple:['Plusieurs niveaux de fraîcheur saisis','Le critère central est ambigu : la valeur la plus fraîche est affichée.'],
+ qa_ombrage_multiple:["Plusieurs niveaux d'ombrage saisis",'Une seule valeur devra être retenue.'],
+ qa_sans_typologie:["Type d'espace non renseigné",'Le refuge échappe au filtre par type.'],
+ qa_sans_adresse:['Adresse manquante','À compléter par géocodage inverse.'],
+ qa_doublon_refuge:['Doublon possible avec un autre refuge','Même nom à moins de 2 km : fusion à vérifier (certains sont des tronçons distincts).'],
+ qa_doublon_potentiel:['Espace potentiel identique à moins de 100 m','Le point gris reste affiché sous le refuge : à lier ou retirer.'],
+ qa_geoloc_suspecte:["Position incohérente avec l'adresse",'Point placé loin de la commune indiquée.']};
+const GROWTH=[['2025-11-18',96],['2026-07-21',233],['2026-08-07',471],['2026-08-31',623],['2026-11-04',661],['2026-11-17',662]];
+const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+let R=[],byId={},DEPS={},POTS=null,items=[],decisions={},db=null,user=null,uid=null,canMod=false,names={};
+const S={f:new Set([0,1,2]),per:new Set(),srv:new Set(),ep:false,eau:false,ty:new Set(),dep:'',q:''};
+const match=r=>S.f.has(r.f)&&(!S.per.size||[...S.per].some(k=>r.p[k]))&&[...S.srv].every(k=>r.s[k])&&(!S.ep||String(r.ep||'').startsWith('oui'))&&(!S.eau||r.e.some(Boolean))&&(!S.ty.size||r.t.some(t=>S.ty.has(t)))&&(!S.dep||r.dep===S.dep)&&(!S.q||norm(`${r.n} ${r.c||''} ${r.a||''}`).includes(norm(S.q)));
+let shown=[];
+
+/* ---------- filtres ---------- */
+function chk(id,label,n,on,dot){return `<label class="chk"><input type="checkbox" data-g="${id}" ${on?'checked':''}>${dot?`<i class="dot" style="background:var(--f${dot-1})"></i>`:''}<span>${label}</span>${n!=null?`<span class="n">${fmt(n)}</span>`:''}</label>`}
+function buildFilters(){
+  $('#fF').innerHTML=FR.map((l,k)=>chk('f'+k,l,R.filter(r=>r.f===k).length,true,k+1)).join('');
+  $('#fP').innerHTML=PER.map((l,k)=>chk('p'+k,l,R.filter(r=>r.p[k]).length)).join('');
+  $('#fS').innerHTML=SV.map((l,k)=>chk('s'+k,l,R.filter(r=>r.s[k]).length)).join('');
+  $('#fE').innerHTML=chk('ep','Eau potable sur place',R.filter(r=>String(r.ep||'').startsWith('oui')).length)+chk('eau',"Présence d'eau (fontaine, baignade…)",R.filter(r=>r.e.some(Boolean)).length);
+  $('#fT').innerHTML=TY.map((l,k)=>`<button type="button" class="chip" data-t="${k}" aria-pressed="false">${l}</button>`).join('');
+  const dc={};R.forEach(r=>dc[r.dep]=(dc[r.dep]||0)+1);
+  $('#fD').innerHTML='<option value="">Tous</option>'+Object.keys(dc).sort().map(d=>`<option value="${d}">${d} · ${esc(DEPS[d]||'')} (${dc[d]})</option>`).join('');
+}
+$('#filters').addEventListener('change',e=>{const g=e.target.dataset.g;if(!g)return;const on=e.target.checked;
+  if(g[0]==='f')S.f[on?'add':'delete'](+g[1]);else if(g[0]==='p')S.per[on?'add':'delete'](+g[1]);else if(g[0]==='s')S.srv[on?'add':'delete'](+g[1]);else S[g]=on;apply()});
+$('#fT').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const k=+b.dataset.t,on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);S.ty[on?'add':'delete'](k);apply()});
+$('#fD').addEventListener('change',e=>{S.dep=e.target.value;apply(true)});
+$('#q').addEventListener('input',e=>{S.q=e.target.value;$('#q2').value=S.q;apply()});
+$('#q2').addEventListener('input',e=>{S.q=e.target.value;$('#q').value=S.q;apply()});
+$('#reset').addEventListener('click',()=>{S.f=new Set([0,1,2]);S.per.clear();S.srv.clear();S.ep=S.eau=false;S.ty.clear();S.dep='';S.q='';$('#q').value=$('#q2').value='';$('#fD').value='';buildFilters();apply(true)});
+function apply(fit){shown=R.filter(match);$('#nShown').textContent=fmt(shown.length);$('#nTab').textContent=fmt(shown.length);page=0;renderTable();updateMap(fit)}
+
+/* ---------- carte ---------- */
+let map=null,mapOK=false,placing=false,baseOK=null;
+const rasterPaint=()=>isDark()?{'raster-brightness-max':0.62,'raster-saturation':-0.35,'raster-contrast':0.1}:{'raster-brightness-max':1,'raster-saturation':0,'raster-contrast':0};
+const pal=()=>isDark()?{sea:'#11161f',land:'#232323',fr:'#2c2c2c',edge:'#4a4a4a',pot:'#8a8a8a',f:['#8c8cff','#6ba3e8','#f08a5d'],ring:'#fff',warn:'#fc5d00',bg:'#161616',sel:'#b1b1f9'}:{sea:'#e9eef5',land:'#f3f3f1',fr:'#ffffff',edge:'#c4c4c4',pot:'#8f8f8f',f:['#000091','#417dc4','#d1622e'],ring:'#fff',warn:'#b34000',bg:'#fff',sel:'#000091'};
+const fcRef=()=>({type:'FeatureCollection',features:shown.map(r=>({type:'Feature',properties:{i:r.i,f:r.f},geometry:{type:'Point',coordinates:[r.x,r.y]}}))});
+const fcPend=()=>({type:'FeatureCollection',features:$('#lPend').checked?items.filter(it=>it.type==='creation'&&status(it)==='en attente'&&it.x!=null).map(it=>({type:'Feature',properties:{k:it.k},geometry:{type:'Point',coordinates:[it.x,it.y]}})):[]});
+function initMap(fond){
+  if(!window.maplibregl){$('#map').innerHTML='<p class="nomap">La carte interactive n\'a pas pu se charger. Le tableau et les statistiques restent disponibles.</p>';return}
+  const P=pal();
+  try{map=new maplibregl.Map({container:'map',bounds:[[-5.4,41.2],[9.8,51.2]],fitBoundsOptions:{padding:20},attributionControl:false,dragRotate:false,pitchWithRotate:false,
+   style:{version:8,sources:{fond:{type:'geojson',data:fond},
+     plan:{type:'raster',tileSize:256,maxzoom:19,attribution:'Plan IGN © IGN – Géoplateforme',tiles:['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png']},
+     ortho:{type:'raster',tileSize:256,maxzoom:19,attribution:'Photographies aériennes © IGN – Géoplateforme',tiles:['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg']}},
+    layers:[
+    {id:'sea',type:'background',paint:{'background-color':P.sea}},
+    {id:'land',type:'fill',source:'fond',paint:{'fill-color':['case',['==',['get','fr'],1],P.fr,P.land]}},
+    {id:'edge',type:'line',source:'fond',paint:{'line-color':P.edge,'line-width':0.8}},
+    {id:'plan',type:'raster',source:'plan',paint:rasterPaint()},
+    {id:'ortho',type:'raster',source:'ortho',layout:{visibility:'none'}}]}})}
+  catch(e){$('#map').innerHTML='<p class="nomap">La carte interactive nécessite WebGL, indisponible ici. Le tableau et les statistiques restent disponibles.</p>';return}
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
+  map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
+  let tileErr=0;
+  map.on('error',e=>{if(e&&e.sourceId&&(e.sourceId==='plan'||e.sourceId==='ortho')&&++tileErr===3&&baseOK!==true){baseOK=false;for(const l of ['plan','ortho'])map.setLayoutProperty(l,'visibility','none');$('#fondSel').disabled=true;$('#fondNote').hidden=false}});
+  map.on('sourcedata',e=>{if(e.sourceId==='plan'&&e.tile&&e.tile.state==='loaded')baseOK=true});
+  map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-right');
+  map.on('load',()=>{const P=pal();mapOK=true;
+    map.addSource('pot',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    map.addLayer({id:'pot',type:'circle',source:'pot',layout:{visibility:'none'},paint:{'circle-color':P.pot,'circle-opacity':0.5,'circle-radius':['interpolate',['linear'],['zoom'],4,1,8,2.2,12,4]}});
+    map.addSource('ref',{type:'geojson',data:fcRef()});
+    map.addLayer({id:'ref',type:'circle',source:'ref',paint:{'circle-color':['match',['get','f'],0,P.f[0],1,P.f[1],P.f[2]],'circle-radius':['interpolate',['linear'],['zoom'],4,3.6,9,6,13,9],'circle-stroke-color':P.ring,'circle-stroke-width':1}});
+    map.addSource('pend',{type:'geojson',data:fcPend()});
+    map.addLayer({id:'pend',type:'circle',source:'pend',paint:{'circle-color':P.bg,'circle-radius':['interpolate',['linear'],['zoom'],4,4.5,12,9],'circle-stroke-color':P.warn,'circle-stroke-width':2.5}});
+    map.addSource('sel',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    map.addLayer({id:'sel',type:'circle',source:'sel',paint:{'circle-color':'transparent','circle-radius':13,'circle-stroke-color':P.sel,'circle-stroke-width':2.5}});
+    for(const l of ['ref','pend','pot']){map.on('mouseenter',l,()=>{if(!placing)map.getCanvas().style.cursor='pointer'});map.on('mouseleave',l,()=>{if(!placing)map.getCanvas().style.cursor=''})}
+    map.on('click',e=>{
+      if(placing){placing=false;$('#mode').classList.remove('on');map.getCanvas().style.cursor='';openForm('creation',null,{x:+e.lngLat.lng.toFixed(5),y:+e.lngLat.lat.toFixed(5)});return}
+      const f=map.queryRenderedFeatures(e.point,{layers:['ref','pend','pot'].filter(l=>map.getLayer(l))});
+      if(!f.length)return;const g=f[0];
+      if(g.layer.id==='ref')openFiche(g.properties.i);else if(g.layer.id==='pend')openPending(g.properties.k);else openPot(g.properties.i)});
+  });
+}
+function updateMap(fit){if(!mapOK)return;map.getSource('ref').setData(fcRef());map.getSource('pend').setData(fcPend());
+  if(fit&&S.dep&&shown.length){const xs=shown.map(r=>r.x),ys=shown.map(r=>r.y);map.fitBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:60,maxZoom:12})}
+  else if(fit&&!S.dep)map.fitBounds([[-5.4,41.2],[9.8,51.2]],{padding:20})}
+function select(x,y){if(mapOK)map.getSource('sel').setData(x==null?{type:'FeatureCollection',features:[]}:{type:'Feature',geometry:{type:'Point',coordinates:[x,y]}})}
+function themeMap(){if(!mapOK)return;const P=pal();map.setPaintProperty('sea','background-color',P.sea);map.setPaintProperty('land','fill-color',['case',['==',['get','fr'],1],P.fr,P.land]);map.setPaintProperty('edge','line-color',P.edge);
+  map.setPaintProperty('ref','circle-color',['match',['get','f'],0,P.f[0],1,P.f[1],P.f[2]]);map.setPaintProperty('ref','circle-stroke-color',P.ring);map.setPaintProperty('pot','circle-color',P.pot);map.setPaintProperty('pend','circle-color',P.bg);map.setPaintProperty('pend','circle-stroke-color',P.warn);map.setPaintProperty('sel','circle-stroke-color',P.sel);const rp=rasterPaint();for(const k in rp)map.setPaintProperty('plan',k,rp[k])}
+new MutationObserver(themeMap).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeMap);
+$('#lPot').addEventListener('change',async e=>{const on=e.target.checked;$('#lgPot').hidden=!on;if(!mapOK)return;
+  if(on&&!POTS){toast('Chargement des 42 411 espaces potentiels…');try{POTS=await load('potentiels');map.getSource('pot').setData({type:'FeatureCollection',features:POTS.map(p=>({type:'Feature',properties:{i:p[2]},geometry:{type:'Point',coordinates:[p[0],p[1]]}}))})}catch(_){toast('Espaces potentiels indisponibles');return}}
+  map.setLayoutProperty('pot','visibility',on?'visible':'none')});
+$('#lPend').addEventListener('change',()=>updateMap());
+$('#fondSel').addEventListener('change',e=>{if(!mapOK)return;const v=e.target.value;map.setLayoutProperty('plan','visibility',v==='plan'?'visible':'none');map.setLayoutProperty('ortho','visibility',v==='ortho'?'visible':'none')});
+
+/* ---------- fiche ---------- */
+const fiche=$('#fiche');
+function closeFiche(){fiche.classList.remove('on');fiche.innerHTML='';select(null)}
+const li=(on,l)=>`<li class="${on?'ok':'no'}">${ic(on?'check-line':'close-line')}<span style="color:var(--ink)">${l}</span></li>`;
+const mine=id=>items.filter(it=>it.cible===id);
+function openFiche(id){const r=byId[id];if(!r)return;showTab('carte');
+  const its=mine(id),conf=its.filter(i=>i.type==='avis'&&i.valeur==='frais').length,pend=its.filter(i=>i.type!=='avis'&&status(i)==='en attente').length;
+  const om=r.o.map(k=>OM[k]).join(', ')||'Non renseigné';
+  fiche.innerHTML=`<button class="x" type="button" aria-label="Fermer la fiche">${ic('close-line')}</button>
+  <div class="tags"><span class="badge" style="background:var(--f${r.f});color:#fff">${FR[r.f]}</span>${r.t.map(t=>`<span class="badge">${TY[t]}</span>`).join('')}</div>
+  <h2>${esc(r.n)}</h2><p class="sub">${esc(r.a||r.c||'Adresse non renseignée')}${r.dep?` · ${r.dep} ${esc(DEPS[r.dep]||'')}`:''}</p>
+  ${r.d?`<p style="margin:12px 0 0">${esc(r.d)}</p>`:''}
+  ${conf||pend?`<div class="alert info">${conf?`<b>${conf}</b> confirmation${conf>1?'s':''} de fraîcheur`:''}${conf&&pend?' · ':''}${pend?`<b>${pend}</b> proposition${pend>1?'s':''} en attente de modération`:''}</div>`:''}
+  <h3>Confort</h3><ul>${PER.map((l,k)=>li(r.p[k],l)).join('')}<li>${ic('sun-line')}<span>Ombrage : ${om}</span></li></ul>
+  <h3>Eau</h3><ul>${EAU.map((l,k)=>li(r.e[k],l)).join('')}<li>${ic('drop-line')}<span>Eau potable : ${esc(r.ep||'non renseigné')}</span></li></ul>
+  <h3>Services</h3><ul>${SV.map((l,k)=>li(r.s[k],l)).join('')}</ul>
+  ${r.pmr||r.ae||r.h||r.hp||r.w||r.tel?`<h3>Pratique</h3><ul>${r.pmr?`<li>Accessibilité : ${esc(r.pmr)}</li>`:''}${r.ae?`<li>Équipements : ${esc(r.ae)}</li>`:''}${r.h?`<li>${ic('time-line')}<span>${esc(r.h)}</span></li>`:''}${r.hp?`<li>${esc(r.hp)}</li>`:''}${r.tel?`<li>Tél. ${esc(r.tel)}</li>`:''}${r.w?`<li><a href="${esc(r.w)}">Site internet ${ic('external-link-line')}</a></li>`:''}</ul>`:''}
+  ${r.q&&r.q.length?`<div class="alert"><b>À vérifier</b><ul style="margin-top:4px">${r.q.map(q=>`<li>${QA[q][0]}</li>`).join('')}</ul></div>`:''}
+  <div class="acts-col">
+   <p class="sub" style="margin:0">Vous y êtes allé récemment ?</p>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-avis="frais">${ic('thumb-up-line')}C'est frais</button><button class="btn ter sm" data-avis="moins frais">Moins frais qu'indiqué</button><button class="btn ter sm" data-avis="fermé">Fermé ou inaccessible</button></div>
+   <button class="btn sec" data-f="modification">${ic('edit-line')}Proposer une modification</button>
+   <button class="btn ter" data-f="signalement">${ic('flag-line')}Signaler un problème</button></div>
+  <p class="sub" style="margin-top:16px;font-size:12px">Identifiant ${esc(r.i)} · ${esc(r.st)} · créé le ${r.dc}, mis à jour le ${r.dm}${r.src?` · import « ${esc(r.src)} »`:''}</p>`;
+  fiche.classList.add('on');fiche.scrollTop=0;select(r.x,r.y);
+  if(mapOK){const pt=map.project([r.x,r.y]),W=map.getContainer().clientWidth,fw=fiche.offsetWidth;if(!map.getBounds().contains([r.x,r.y])||pt.x>W-fw-30)map.easeTo({center:[r.x,r.y],zoom:Math.max(map.getZoom(),9),offset:[W>fw+200?-fw/2:0,0],duration:500})}
+  fiche.querySelector('.x').onclick=closeFiche;
+  fiche.querySelectorAll('[data-avis]').forEach(b=>b.onclick=()=>save({type:'avis',cible:r.i,nom:r.n,valeur:b.dataset.avis,x:r.x,y:r.y}).then(()=>openFiche(r.i)));
+  fiche.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>openForm(b.dataset.f,r));
+}
+function openPot(id){const p=POTS&&POTS.find(q=>q[2]===id);if(!p)return;
+  fiche.innerHTML=`<button class="x" type="button" aria-label="Fermer">${ic('close-line')}</button><div class="tags"><span class="badge">Espace potentiel</span>${p[4]>=0?`<span class="badge">${POT[p[4]]}</span>`:''}</div><h2>${esc(p[3]||'Sans nom')}</h2>
+  <p class="sub">Pré-identifié à partir de la BD TOPO ou d'imports partenaires. Personne ne l'a encore qualifié comme refuge.</p>
+  <div class="acts-col"><button class="btn" data-q>${ic('add-line')}Qualifier comme refuge</button></div>`;
+  fiche.classList.add('on');select(p[0],p[1]);fiche.querySelector('.x').onclick=closeFiche;
+  fiche.querySelector('[data-q]').onclick=()=>openForm('creation',null,{x:p[0],y:p[1],nom:p[3],pot:p[2]});}
+function openPending(k){const it=items.find(i=>i.k===k);if(!it)return;
+  fiche.innerHTML=`<button class="x" type="button" aria-label="Fermer">${ic('close-line')}</button><div class="tags"><span class="badge b-new">Proposition en attente</span></div><h2>${esc(it.nom||'Sans nom')}</h2>
+  <p class="sub">Proposé le ${new Date(it.date).toLocaleDateString('fr-FR')}${names[it.auteur]?` par ${esc(names[it.auteur])}`:''}. Ce lieu apparaîtra parmi les refuges une fois validé dans le guichet.</p>${summary(it)}`;
+  fiche.classList.add('on');select(it.x,it.y);fiche.querySelector('.x').onclick=closeFiche}
+
+/* ---------- formulaires de contribution ---------- */
+const radios=(name,opts,val,req)=>`<div class="radios">${opts.map((o,k)=>`<label class="chk"><input type="radio" name="${name}" value="${k}" ${val===k?'checked':''} ${req?'required':''}>${o}</label>`).join('')}</div>`;
+const checks=(name,opts,vals)=>`<div class="radios">${opts.map((o,k)=>`<label class="chk"><input type="checkbox" name="${name}" value="${k}" ${vals&&vals[k]?'checked':''}>${o}</label>`).join('')}</div>`;
+function openForm(type,r,pos){showTab('carte');
+  const T={creation:'Proposer un refuge',modification:'Proposer une modification',signalement:'Signaler un problème'}[type];
+  let body='';
+  if(type==='signalement')body=`<fieldset><legend>Quel est le problème ?</legend>${radios('pb',['Fermé définitivement','Doublon d\'un autre refuge','Mal placé sur la carte','Informations fausses','Autre'],null,true)}</fieldset>`;
+  else body=`${type==='creation'?`<div><label class="l" for="fn">Nom du lieu *</label><input class="inp" id="fn" name="nom" required value="${esc(pos&&pos.nom||'')}"></div>`:''}
+   <fieldset><legend>Ressenti de fraîcheur *</legend>${radios('f',FR,r?r.f:null,true)}</fieldset>
+   <fieldset><legend>Type d'espace</legend>${checks('t',TY,r?TY.map((_,k)=>r.t.includes(k)):null)}</fieldset>
+   <fieldset><legend>Moments confortables</legend>${checks('p',PER,r&&r.p)}</fieldset>
+   <fieldset><legend>Ombrage</legend>${radios('o',OM,r&&r.o.length?r.o[0]:null)}</fieldset>
+   <fieldset><legend>Eau potable</legend>${radios('ep',['Oui','Non','Je ne sais pas'],r?({oui:0,non:1}[String(r.ep).split(' ')[0]]??2):null)}</fieldset>
+   <fieldset><legend>Services</legend>${checks('s',SV,r&&r.s)}</fieldset>
+   ${type==='creation'?`<div><label class="l" for="fa">Adresse ou repère</label><input class="inp" id="fa" name="adresse"></div>`:''}`;
+  fiche.innerHTML=`<button class="x" type="button" aria-label="Fermer">${ic('close-line')}</button><h2>${T}</h2><p class="sub">${r?esc(r.n):pos?`Position : ${pos.y.toFixed(4)}, ${pos.x.toFixed(4)}`:''}</p>
+  <form class="form" id="cf">${body}<div><label class="l" for="fc">Commentaire${type==='signalement'?' *':''}</label><textarea class="inp" id="fc" name="com" ${type==='signalement'?'required':''} placeholder="Ce que vous avez constaté, quand…"></textarea></div>
+  <p class="hint" style="margin:0">Votre proposition sera relue par un modérateur avant d'apparaître sur la carte.</p>
+  <div style="display:flex;gap:8px"><button class="btn" type="submit">Envoyer</button><button class="btn ter" type="button" data-c>Annuler</button></div></form>`;
+  fiche.classList.add('on');fiche.scrollTop=0;if(pos)select(pos.x,pos.y);else if(r)select(r.x,r.y);
+  fiche.querySelector('.x').onclick=fiche.querySelector('[data-c]').onclick=()=>r?openFiche(r.i):closeFiche();
+  $('#cf').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);const all=n=>fd.getAll(n).map(Number);const one=n=>fd.get(n)==null?null:+fd.get(n);
+    const it={type,cible:r?r.i:(pos&&pos.pot)||null,nom:r?r.n:fd.get('nom'),x:r?r.x:pos.x,y:r?r.y:pos.y,commentaire:fd.get('com')||''};
+    if(type==='signalement')it.probleme=['fermé définitivement','doublon','mal placé','informations fausses','autre'][one('pb')];
+    else it.champs={fraicheur:one('f'),typologie:all('t'),periodes:all('p'),ombrage:one('o'),eau_potable:one('ep'),services:all('s'),adresse:fd.get('adresse')||undefined};
+    await save(it);r?openFiche(r.i):closeFiche()};
+}
+$('#addBtn').onclick=()=>{showTab('carte');if(!mapOK){toast('La carte n\'est pas disponible ici.');return}closeFiche();placing=true;$('#mode').classList.add('on');map.getCanvas().style.cursor='crosshair';$('#map').scrollIntoView({behavior:'smooth',block:'center'})};
+$('#modeX').onclick=()=>{placing=false;$('#mode').classList.remove('on');if(map)map.getCanvas().style.cursor=''};
+
+/* ---------- stockage des contributions ---------- */
+const LS='refuges-maquette-contribs';
+let myItems=[];
+const status=it=>(decisions[it.k]&&decisions[it.k].s)||'en attente';
+async function save(it){it.k=Date.now().toString(36)+Math.random().toString(36).slice(2,6);it.date=new Date().toISOString();it.auteur=uid||'local';
+  myItems=[...myItems,it];
+  try{if(db&&uid){await db.doc('contributions/'+uid).set({items:myItems});}else{localStorage.setItem(LS,JSON.stringify(myItems));items=[...myItems];refreshContribs()}
+   toast({avis:'Merci, votre avis est enregistré.',creation:'Merci ! Votre proposition est en attente de modération.',modification:'Merci ! Votre modification est en attente de modération.',signalement:'Merci, le signalement est transmis aux modérateurs.'}[it.type])}
+  catch(e){myItems.pop();toast(e&&e.code==='quota_exceeded'?'La file est pleine : exportez-la puis videz-la.':'Enregistrement impossible pour le moment.')}}
+async function decide(k,s){if(!db||!canMod)return;decisions={...decisions,[k]:{s,at:new Date().toISOString()}};
+  try{await db.doc('moderation/decisions').set({d:decisions})}catch(_){toast('Décision non enregistrée.')}refreshContribs()}
+function summary(it){const c=it.champs;if(!c)return it.type==='avis'?`<p style="margin:6px 0 0">Avis : ${esc(it.valeur)}</p>`:`<p style="margin:6px 0 0">${esc(it.probleme||'')}${it.commentaire?' — '+esc(it.commentaire):''}</p>`;
+  const bits=[c.fraicheur!=null?FR[c.fraicheur]:null,c.typologie&&c.typologie.length?c.typologie.map(k=>TY[k]).join(', '):null,c.periodes&&c.periodes.length?c.periodes.map(k=>PER[k]).join(', '):null,c.ombrage!=null?OM[c.ombrage]:null,c.services&&c.services.length?c.services.map(k=>SV[k]).join(', '):null].filter(Boolean);
+  return `<p style="margin:6px 0 0">${esc(bits.join(' · '))}${it.commentaire?`<br><span class="sub">« ${esc(it.commentaire)} »</span>`:''}</p>`}
+function refreshContribs(){
+  const pend=items.filter(i=>status(i)==='en attente').length;$('#cBadge').textContent=pend;
+  const tc={};items.forEach(i=>tc[i.type]=(tc[i.type]||0)+1);
+  $('#cSum').textContent=items.length?`${items.length} contribution${items.length>1?'s':''} : ${Object.entries(tc).map(([k,v])=>`${v} ${{creation:'nouveau(x) refuge(s)',modification:'modification(s)',signalement:'signalement(s)',avis:'avis'}[k]}`).join(', ')} · ${pend} en attente`:'Aucune contribution pour l\'instant. Ouvrez une fiche sur la carte ou proposez un nouveau refuge.';
+  const fl=$('#cFilt').value,list=items.filter(i=>!fl||status(i)===fl).sort((a,b)=>b.date.localeCompare(a.date));
+  $('#cList').innerHTML=list.length?`<div class="scroll"><table class="stack"><thead><tr><th>Date</th><th>Type</th><th>Lieu</th><th>Détail</th><th>Auteur</th><th>Statut</th></tr></thead><tbody>${list.map(it=>{const s=status(it);
+    return `<tr><td style="white-space:nowrap">${new Date(it.date).toLocaleDateString('fr-FR')}</td><td><span class="badge ${it.type==='creation'?'b-blue':it.type==='signalement'?'b-new':''}">${{creation:'Nouveau refuge',modification:'Modification',signalement:'Signalement',avis:'Avis'}[it.type]}</span></td>
+    <td>${it.cible&&byId[it.cible]?`<button class="lnk" data-o="${esc(it.cible)}">${esc(it.nom)}</button>`:esc(it.nom||'—')}</td><td>${summary(it)}</td><td>${esc(names[it.auteur]||(it.auteur===uid?'Vous':it.auteur==='local'?'Cet appareil':'Contributeur'))}</td>
+    <td><span class="badge ${s==='acceptée'?'b-ok':s==='refusée'?'':'b-new'}">${s}</span>${canMod&&s==='en attente'?`<div style="display:flex;gap:6px;margin-top:6px"><button class="btn sm" data-ok="${it.k}">Accepter</button><button class="btn ter sm" data-ko="${it.k}">Refuser</button></div>`:''}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="empty">Rien à afficher pour ce filtre.</p>';
+  $('#cList').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>openFiche(b.dataset.o));
+  $('#cList').querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>decide(b.dataset.ok,'acceptée'));
+  $('#cList').querySelectorAll('[data-ko]').forEach(b=>b.onclick=()=>decide(b.dataset.ko,'refusée'));
+  updateMap();
+}
+$('#cFilt').onchange=refreshContribs;
+const contribGeo=()=>JSON.stringify({type:'FeatureCollection',features:items.map(it=>({type:'Feature',geometry:it.x!=null?{type:'Point',coordinates:[it.x,it.y]}:null,
+  properties:{id_contribution:it.k,type:it.type,statut:status(it),id_cible:it.cible,nom:it.nom,date:it.date,commentaire:it.commentaire||null,avis:it.valeur||null,probleme:it.probleme||null,
+   fraicheur_niveau:it.champs&&it.champs.fraicheur!=null?FR[it.champs.fraicheur].toLowerCase():null,typologie:it.champs&&it.champs.typologie?it.champs.typologie.map(k=>TY[k].toLowerCase()).join(' | '):null,
+   periode_matin:it.champs?it.champs.periodes.includes(0):null,periode_apres_midi:it.champs?it.champs.periodes.includes(1):null,periode_soir:it.champs?it.champs.periodes.includes(2):null,
+   ombrage:it.champs&&it.champs.ombrage!=null?OM[it.champs.ombrage].toLowerCase():null,eau_potable:it.champs&&it.champs.eau_potable!=null?['oui','non','non renseigné'][it.champs.eau_potable]:null,
+   service_enfants:it.champs?it.champs.services.includes(0):null,service_assises:it.champs?it.champs.services.includes(1):null,service_toilettes:it.champs?it.champs.services.includes(2):null,service_gratuit:it.champs?it.champs.services.includes(3):null,service_climatise:it.champs?it.champs.services.includes(4):null,
+   adresse:it.champs&&it.champs.adresse||null}}))},null,1);
+async function copyText(t,m){try{await navigator.clipboard.writeText(t);toast(m)}catch(_){toast('Copie refusée par le navigateur.')}}
+async function download(name,text,type){let dl=null;try{dl=window.claude&&await claude.use('downloads')}catch(_){}
+  if(dl){try{await dl.save({filename:name,data:new Blob([text],{type})});return}catch(_){toast('Téléchargement annulé.');return}}
+  if(!window.claude){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);return}
+  copyText(text,'Téléchargement indisponible ici : le contenu a été copié dans le presse-papiers.')}
+$('#cCopy').onclick=()=>copyText(contribGeo(),'GeoJSON des contributions copié.');
+$('#cDl').onclick=()=>download('contributions_refuges_climatiques.geojson',contribGeo(),'application/geo+json');
+const refGeo=()=>JSON.stringify({type:'FeatureCollection',features:shown.map(r=>({type:'Feature',geometry:{type:'Point',coordinates:[r.x,r.y]},properties:{id_source:r.i,nom:r.n,description:r.d||null,typologie:r.t.map(k=>TY[k].toLowerCase()).join(' | ')||null,fraicheur_niveau:FR[r.f].toLowerCase(),periode_matin:!!r.p[0],periode_apres_midi:!!r.p[1],periode_soir:!!r.p[2],ombrage:r.o.map(k=>OM[k].toLowerCase()).join(' | ')||null,eau_etendue:!!r.e[0],eau_jeux:!!r.e[1],eau_fontaine:!!r.e[2],eau_potable:r.ep||null,service_enfants:!!r.s[0],service_assises:!!r.s[1],service_toilettes:!!r.s[2],service_gratuit:!!r.s[3],service_climatise:!!r.s[4],adresse:r.a||null,code_postal:r.cp||null,commune:r.c||null,departement:r.dep,date_maj:r.dm}}))});
+$('#dlBtn').onclick=()=>download(`refuges_climatiques_${shown.length}.geojson`,refGeo(),'application/geo+json');
+$('#csvBtn').onclick=()=>{const h=['id','nom','commune','departement','fraicheur','typologie','eau_potable','latitude','longitude'];const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  download('refuges_climatiques.csv',[h.join(';'),...shown.map(r=>[r.i,r.n,r.c,r.dep,FR[r.f],r.t.map(k=>TY[k]).join(' | '),r.ep,r.y,r.x].map(q).join(';'))].join('\n'),'text/csv')};
+
+async function initStore(){
+  let C=null;try{C=window.claude&&window.claude.use?window.claude:null}catch(_){}
+  if(!C){local();return}
+  try{[db,user]=await Promise.all([C.use('db'),C.use('user')])}catch(_){}
+  if(!db){local();return}
+  try{uid=user?await user.id():null;canMod=user?!!(await user.canEdit()):false}catch(_){}
+  $('#storeNote').textContent=canMod?'Vous pouvez modérer : boutons Accepter / Refuser dans le tableau.':'Les contributions sont partagées avec les autres personnes qui ont accès à cette maquette.';
+  $('#whoBtn').textContent=canMod?'Espace modérateur':'Mon espace';
+  const tm=setTimeout(()=>{$('#storeNote').textContent='La file partagée ne répond pas encore ; réessayez dans un instant.'},10000);
+  db.collection('contributions').onSnapshot(async snap=>{clearTimeout(tm);items=[];snap.docs.forEach(d=>{const v=d.data();if(v&&Array.isArray(v.items))items.push(...v.items)});
+    myItems=uid?items.filter(i=>i.auteur===uid):[];
+    const ids=[...new Set(items.map(i=>i.auteur))].filter(Boolean);
+    if(user&&ids.length){try{const ps=await user.profiles(ids);for(const id of ids)if(ps[id]&&ps[id].name)names[id]=ps[id].name}catch(_){}}
+    refreshContribs()},e=>{clearTimeout(tm);$('#storeNote').textContent='File partagée indisponible.'});
+  db.doc('moderation/decisions').onSnapshot(s=>{decisions=(s.exists&&s.data().d)||{};refreshContribs()},()=>{});
+}
+function local(){try{myItems=JSON.parse(localStorage.getItem(LS)||'[]')}catch(_){myItems=[]}items=[...myItems];$('#storeNote').textContent='Ici, elles restent enregistrées dans ce navigateur uniquement : exportez-les pour les transmettre.';refreshContribs()}
+$('#whoBtn').onclick=()=>showTab('contributions');
+
+/* ---------- tableau ---------- */
+let page=0,sortK='f',sortD=1;const PS=50;
+const keyOf=(r,k)=>k==='t'?(r.t.length?TY[r.t[0]]:'~'):k==='s'?-r.s.reduce((a,b)=>a+b,0):k==='q'?-(r.q||[]).length:k==='f'?r.f:norm(r[k]||'~');
+function renderTable(){const rows=[...shown].sort((a,b)=>{const x=keyOf(a,sortK),y=keyOf(b,sortK);return (x<y?-1:x>y?1:0)*sortD||a.n.localeCompare(b.n,'fr')});
+  const pages=Math.max(1,Math.ceil(rows.length/PS));page=Math.min(page,pages-1);
+  $('#tb').innerHTML=rows.slice(page*PS,page*PS+PS).map(r=>`<tr><td><button class="lnk" data-o="${esc(r.i)}">${esc(r.n)}</button></td><td>${esc(r.c||'—')}</td><td>${esc(r.dep||'')}</td>
+   <td style="white-space:nowrap"><i class="dot" style="background:var(--f${r.f});margin-right:6px"></i>${FR[r.f]}</td><td>${r.t.map(k=>TY[k]).join(', ')||'—'}</td>
+   <td>${r.s.map((v,k)=>v?SV[k]:null).filter(Boolean).join(', ')||'—'}</td><td>${esc(r.ep||'—')}</td><td>${r.q&&r.q.length?`<span class="badge b-new">${r.q.length} point${r.q.length>1?'s':''}</span>`:''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Aucun refuge ne correspond aux filtres.</td></tr>';
+  $('#tb').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>openFiche(b.dataset.o));
+  const btn=(p,l)=>`<button type="button" data-p="${p}" ${p===page?'aria-current="page"':''}>${l}</button>`;
+  let h='';if(pages>1){h+=page>0?btn(page-1,'‹'):'';for(let p=0;p<pages;p++)if(p<2||p>pages-3||Math.abs(p-page)<2)h+=btn(p,p+1);else if(!h.endsWith('…'))h+='…';h+=page<pages-1?btn(page+1,'›'):''}
+  $('#pager').innerHTML=h;$('#pager').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{page=+b.dataset.p;renderTable()})}
+document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortD=sortK===k?-sortD:1;sortK=k;document.querySelectorAll('th[data-k]').forEach(t=>t.removeAttribute('aria-sort'));th.setAttribute('aria-sort',sortD>0?'ascending':'descending');renderTable()});
+
+/* ---------- statistiques ---------- */
+const bars=(el,rows,tot,pct)=>{const mx=Math.max(...rows.map(r=>r[1]));$(el).innerHTML=rows.map(([l,v,c])=>`<div class="bar"><span>${l}</span><i style="width:${(v/mx*100).toFixed(1)}%${c?`;background:${c}`:''}"></i><b>${pct?Math.round(v/tot*100)+' %':fmt(v)}</b></div>`).join('')};
+function stats(){const n=R.length;
+  bars('#sF',FR.map((l,k)=>[l,R.filter(r=>r.f===k).length,`var(--f${k})`]),n);
+  bars('#sT',TY.map((l,k)=>[l,R.filter(r=>r.t.includes(k)).length]).sort((a,b)=>b[1]-a[1]),n);
+  bars('#sS',SV.map((l,k)=>[l,R.filter(r=>r.s[k]).length]).sort((a,b)=>b[1]-a[1]),n,true);
+  bars('#sP',PER.map((l,k)=>[l,R.filter(r=>r.p[k]).length]),n,true);
+  const dc={};R.forEach(r=>dc[r.dep]=(dc[r.dep]||0)+1);const top=Object.entries(dc).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  bars('#sD',top.map(([d,v])=>[`${d} · ${DEPS[d]||''}`,v]),n);
+  const est=R.filter(r=>r.de).length,t4=top.slice(0,4).reduce((a,b)=>a+b[1],0);
+  $('#sDsub').textContent=`Les 4 premiers départements regroupent ${Math.round(t4/n*100)} % des refuges. Département déduit de la position pour ${est} refuges sans code postal.`;
+  $('#kRef').textContent=fmt(n);$('#kTF').textContent=fmt(R.filter(r=>r.f===0).length);$('#kDep').textContent=Object.keys(dc).length;
+  const s=document.createElementNS('http://www.w3.org/2000/svg','svg');$('#growth').appendChild(s);
+  const draw=()=>{const W=s.clientWidth,H=s.clientHeight;if(W<100||H<100)return;const l=44,rgt=24,tp=20,bt=34,t=d=>Date.parse(d),t0=t('2025-11-01'),t1=t('2026-12-01');
+    const X=d=>l+(t(d)-t0)/(t1-t0)*(W-l-rgt),Y=v=>tp+(1-v/700)*(H-tp-bt),sm=W<520;
+    const mo=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+    const ticks=(sm?['2025-11-01','2026-03-01','2026-07-01','2026-11-01']:['2025-11-01','2026-01-01','2026-03-01','2026-05-01','2026-07-01','2026-09-01','2026-11-01']);
+    s.innerHTML=`<rect x="${X('2026-07-01')}" y="${tp}" width="${X('2026-09-01')-X('2026-07-01')}" height="${H-tp-bt}" fill="var(--alt)"/>
+    <text x="${X('2026-07-01')+6}" y="${tp+14}" font-size="12" fill="var(--ink2)">juil.-août 2026</text>
+    ${[0,200,400,600].map(v=>`<line x1="${l}" x2="${W-rgt}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${l-8}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="var(--ink2)">${v}</text>`).join('')}
+    ${ticks.map(d=>`<text x="${X(d)}" y="${H-10}" text-anchor="middle" font-size="12" fill="var(--ink2)">${mo[+d.slice(5,7)-1]} ${d.slice(2,4)}</text>`).join('')}
+    <path d="${GROWTH.map(([d,v],i)=>`${i?'L':'M'}${X(d)} ${Y(v)}`).join('')}" fill="none" stroke="var(--blue)" stroke-width="2.5"/>
+    ${GROWTH.map(([d,v],i)=>`<circle cx="${X(d)}" cy="${Y(v)}" r="4.5" fill="var(--blue)"><title>${d} : ${v} refuges</title></circle>${[0,1,2,5].includes(i)?`<text x="${X(d)+(i===1?10:i===5?-6:i===2?-10:0)}" y="${Y(v)+(i===1?18:i===0?-12:i===5?-12:4)}" text-anchor="${i===1?'start':i===5||i===2?'end':'middle'}" font-size="13" font-weight="${i===5?700:400}" fill="var(--ink)">${v}</text>`:''}`).join('')}`};
+  new ResizeObserver(draw).observe(s);
+}
+function qa(){const out=Object.entries(QA).map(([k,[l,d]])=>{const rs=R.filter(r=>r.q&&r.q.includes(k));return [k,l,d,rs]}).filter(x=>x[3].length).sort((a,b)=>b[3].length-a[3].length);
+  $('#qaList').innerHTML=out.map(([k,l,d,rs])=>`<details><summary><b>${rs.length}</b><span>${l}<small>${d}</small></span>${ic('arrow-right-line')}</summary><div class="lst">${rs.map(r=>`<button class="lnk" data-o="${esc(r.i)}">${esc(r.n)}</button>`).join('')}</div></details>`).join('');
+  $('#qaList').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>openFiche(b.dataset.o))}
+
+/* ---------- onglets ---------- */
+const TABS=['carte','tableau','statistiques','qualite','contributions','a-propos'];
+function showTab(id,push){if(!TABS.includes(id))id='carte';
+  for(const t of TABS){const on=t===id;$('#t-'+t).setAttribute('aria-selected',on);$('#'+t).hidden=!on}
+  if(push!==false&&location.hash!=='#'+id)history.replaceState(null,'','#'+id);
+  if(id==='carte'&&map)setTimeout(()=>map.resize(),0)}
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('[role=tab]');if(b)showTab(b.id.slice(2))});
+document.querySelector('.tabs').addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft'].includes(e.key))return;const i=TABS.findIndex(t=>$('#t-'+t).getAttribute('aria-selected')==='true');const n=TABS[(i+(e.key==='ArrowRight'?1:TABS.length-1))%TABS.length];showTab(n);$('#t-'+n).focus()});
+addEventListener('hashchange',()=>showTab(location.hash.slice(1),false));
+document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');if(a){const id=a.getAttribute('href').slice(1);if(TABS.includes(id)){e.preventDefault();showTab(id);document.querySelector('.tabs').scrollIntoView({behavior:'smooth'})}}});
+
+/* ---------- démarrage ---------- */
+const inl=id=>{const e=document.getElementById('d-'+id);return e?JSON.parse(e.textContent):null};
+const load=async id=>inl(id)||(await fetch('data/'+id+'.json')).json();
+(async()=>{
+  try{const [r,d,f]=await Promise.all(['refuges','departements','fond'].map(load));
+    R=r;DEPS=d;R.forEach(x=>byId[x.i]=x);shown=R.slice();buildFilters();stats();qa();renderTable();initMap(f)}
+  catch(e){$('#carte').insertAdjacentHTML('afterbegin','<p class="alert">Les données n\'ont pas pu être chargées.</p>')}
+  showTab(location.hash.slice(1)||'carte',false);
+  initStore();
+})();
+}
+</script>
+</body>
+</html>

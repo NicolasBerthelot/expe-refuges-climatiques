@@ -1,0 +1,13 @@
+id_a,nom_a,id_b,nom_b,dist_m,sim
+1Kui,Ecole de Wancourt,1Kug,Eglise de Wancourt,34,0.86
+1Kui,Ecole de Wancourt,1Kuf,Mairie de Wancourt,7,0.74
+1Ktj,Ceinture verte de Provins-3,1Kti,Ceinture verte de Provins-2,490,0.96
+1Ktj,Ceinture verte de Provins-3,1Kth,Ceinture verte de Provins 1,817,0.96
+1Kti,Ceinture verte de Provins-2,1Kth,Ceinture verte de Provins 1,447,0.96
+1Kth,Ceinture verte de Provins 1,1Ktg,JARDIN DES PROMENADES PROVINOISES,0,0.43
+1Kta,Ecole de Mont-Saint-Eloi,1KtZ,Eglise de Mont-Saint-Eloi,131,0.9
+1KsM,Aushopping Castres,1KsL,Aushopping Castres,0,1.0
+1Krb,Résidence SOUVILLE - Association ALYS,1Krc,Résidence MIRABELLE - association ALYS,1245,0.87
+lqH,Base de Loisirs de la Ramée,3rZ,Base de loisirs de La Ramée,1591,1.0
+lut,Jardin Cartailhac,3rl,Le jardin du musée Saint Raymond,3,0.41
+Ym,Allée verte,Yj,Allée verte,803,1.0

@@ -1,0 +1,4 @@
+# Exports bruts GoGoCarto (contiennent des courriels)
+export_element_*
+__pycache__/
+node_modules/
