@@ -42,9 +42,9 @@ En local comme sur GitHub Pages, les contributions restent dans le navigateur, e
 
 ### En ligne (GitHub Pages)
 
-Le workflow `.github/workflows/pages.yml` publie `maquette/site/` à chaque push sur `main` qui touche ce dossier. La maquette est alors accessible à l'adresse <https://nicolasberthelot.github.io/expe-refuges-climatiques/>. La page porte une balise `noindex`, pour ne pas être référencée par les moteurs de recherche.
+Le workflow `.github/workflows/pages.yml` publie le dépôt à chaque push sur `main`. L'adresse <https://nicolasberthelot.github.io/expe-refuges-climatiques/> redirige vers la maquette (`maquette/site/`), et les fichiers de `donnees/` sont téléchargeables au même endroit. Le fichier `.nojekyll` désactive le traitement Jekyll, et le site obtenu est le même que la source soit « GitHub Actions » ou une branche. La page porte une balise `noindex`, pour ne pas être référencée par les moteurs de recherche.
 
-À la première mise en place : **Settings → Pages → Build and deployment → Source : GitHub Actions**.
+Réglage recommandé : **Settings → Pages → Build and deployment → Source : GitHub Actions**. Cela évite deux déploiements concurrents à chaque push.
 
 ### En local
 
