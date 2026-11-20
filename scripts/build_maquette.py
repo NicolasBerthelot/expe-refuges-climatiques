@@ -7,7 +7,8 @@ Produit :
   maquette/site/data/{refuges,potentiels,departements}.json
   maquette/site/index.html            (version servie par un serveur web, lit data/*.json)
   maquette/refuges_climatiques_maquette.html  (version autonome, ouvrable par double-clic)
-Prérequis : pandas, geopandas, pyogrio, scipy ; maquette/site/fonts.css, maplibre-gl.css et data/fond.json
+Prérequis : pandas, geopandas, pyogrio, scipy ; maquette/site/fonts.css, maplibre-gl.css, data/fond.json
+et data/carte-facile.json
 (voir README pour leur génération).
 """
 import sys, json, re, pathlib, numpy as np, pandas as pd, geopandas as gpd
@@ -75,7 +76,7 @@ def main(gpkg, tout_csv):
     st = st.replace('<link rel="stylesheet" href="maplibre-gl.css">', '<style>' + (SITE / 'maplibre-gl.css').read_text(encoding='utf-8') + '</style>')
     blk = ''.join(f'<script type="application/json" id="d-{k}">'
                   + json.dumps(json.load(open(D / f'{k}.json', encoding='utf-8')), ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
-                  + '</script>\n' for k in ('refuges', 'departements', 'fond', 'potentiels'))
+                  + '</script>\n' for k in ('refuges', 'departements', 'fond', 'carte-facile', 'potentiels'))
     st = st.replace('<script src="https://unpkg.com/maplibre-gl', blk + '<script src="https://unpkg.com/maplibre-gl', 1)
     (ROOT / 'maquette' / 'refuges_climatiques_maquette.html').write_text(st, encoding='utf-8')
     print(f'{len(recs)} refuges, {len(pots)} espaces potentiels, {r.dep_est.sum()} départements estimés')

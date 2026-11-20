@@ -23,6 +23,7 @@ La carte d'origine est portée par TRIBU, avec un financement de l'ADEME (Appel 
 | `scripts/build_gpkg.py` | Construit le GeoPackage à partir des exports GoGoCarto |
 | `scripts/build_maquette.py` | Génère les données de la maquette et la version autonome |
 | `scripts/build_fond.js` | Génère le contour de secours `fond.json` à partir de Natural Earth |
+| `scripts/build_styles_carte_facile.mjs` | Extrait les styles Carte facile vers `data/carte-facile.json` |
 
 Les exports bruts de GoGoCarto ne sont **pas** versionnés. Ils contiennent des colonnes de courriels (`email`, `userOwnerEmail`), que le GeoPackage exclut.
 
@@ -30,7 +31,7 @@ Les exports bruts de GoGoCarto ne sont **pas** versionnés. Ils contiennent des 
 
 Elle prend la forme d'une fiche de jeu de données du catalogue cartes.gouv.fr, avec six onglets :
 
-- **Carte** : les refuges colorés selon leur fraîcheur, des filtres, une fiche par lieu, et les espaces potentiels en couche optionnelle. Le fond est le Plan IGN ou les photographies aériennes de la Géoplateforme. Si les tuiles ne se chargent pas, la carte bascule sur un contour simple.
+- **Carte** : les refuges colorés selon leur fraîcheur, des filtres, une fiche par lieu, et les espaces potentiels en couche optionnelle. Le fond vient de [Carte facile](https://fab-geocommuns.github.io/carte-facile-site/), avec trois styles : désaturé par défaut, simple, et photographies aériennes. Si les tuiles ne se chargent pas, la carte bascule sur un contour simple.
 - **Tableau** : triable, export CSV.
 - **Statistiques** : croissance de la base, répartitions.
 - **Qualité** : liste des anomalies, avec les fiches concernées.
@@ -66,6 +67,7 @@ Ressources statiques de `maquette/site/`, à ne refaire qu'en cas de montée de 
 - `fonts.css` : Marianne 400, 500 et 700 en woff2, encodée en data URI, tirée de `@gouvfr/dsfr/dist/fonts/`.
 - `maplibre-gl.css` : la feuille de style de `maplibre-gl@4.7.1`.
 - `data/fond.json` : `npm i topojson-client world-atlas && node scripts/build_fond.js`.
+- `data/carte-facile.json` : `npm i carte-facile@0.10.2 maplibre-gl && node scripts/build_styles_carte_facile.mjs`. Carte facile n'est distribuée que sous forme de module ES : ses styles sont extraits pour être embarqués sans outil de build.
 
 ## Modèle de données (couche `refuges_climatiques`)
 
@@ -97,6 +99,6 @@ Ressources statiques de `maquette/site/`, à ne refaire qu'en cas de montée de 
   - DSFR : MIT, sauf la police Marianne ;
   - police Marianne : réservée aux sites de l'État ;
   - Natural Earth : domaine public ;
-  - fonds Plan IGN et photographies aériennes : IGN, Géoplateforme ;
+  - styles Carte facile (Fabrique des géocommuns) : Apache-2.0 ; tuiles Plan IGN et photographies aériennes : IGN, Géoplateforme ;
   - découpage administratif : INSEE / Etalab.
 - La maquette **n'est pas un service officiel**, et son en-tête n'utilise pas l'emblème de la République.

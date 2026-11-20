@@ -227,8 +227,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
         <h3>Type d'espace</h3><div class="chips" id="fT"></div>
         <h3><label for="fD">Département</label></h3><select class="inp" id="fD"><option value="">Tous</option></select>
         <h3><label for="fondSel">Fond de carte</label></h3>
-        <select class="inp" id="fondSel"><option value="plan">Plan IGN</option><option value="ortho">Photographies aériennes</option><option value="none">Contour simple</option></select>
-        <p class="sub" id="fondNote" hidden style="font-size:12px;margin-top:6px">Les fonds IGN ne peuvent pas être chargés ici : contour simple affiché.</p>
+        <select class="inp" id="fondSel"><option value="desaturated">Carte facile · désaturée</option><option value="simple">Carte facile · simple</option><option value="aerial">Carte facile · photographies aériennes</option><option value="none">Contour simple (hors ligne)</option></select>
+        <p class="sub" id="fondNote" hidden style="font-size:12px;margin-top:6px">Les fonds Carte facile ne peuvent pas être chargés ici : contour simple affiché.</p>
         <h3>Couches</h3>
         <label class="tgl"><input type="checkbox" id="lPot"> Espaces potentiels <span class="sub">(42 411)</span></label>
         <label class="tgl"><input type="checkbox" id="lPend" checked> Propositions en attente</label>
@@ -312,7 +312,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   <div class="wrap">
     <p class="marque">République<br>française<small>Liberté<br>Égalité<br>Fraternité</small></p>
     <div><p>Maquette de page catalogue pour cartes.gouv.fr, réalisée à partir des exports de la cartographie collaborative des refuges climatiques. Elle ne constitue pas un service en ligne officiel.</p>
-      <p>Fonds de carte : Plan IGN et photographies aériennes (Géoplateforme) ; à défaut, contour Natural Earth (domaine public). Police Marianne et composants inspirés du Système de design de l'État.</p></div>
+      <p>Fonds de carte : <a href="https://fab-geocommuns.github.io/carte-facile-site/">Carte facile</a> (Fabrique des géocommuns, données IGN – Géoplateforme) ; à défaut, contour Natural Earth (domaine public). Police Marianne et composants inspirés du Système de design de l'État.</p></div>
     <div class="ft-b"><span>Accessibilité : non évaluée (maquette)</span><span>Données : TRIBU / ADEME, export du 17/11/2026</span><a href="https://lesrefugesclimatiques.gogocarto.fr/">Carte collaborative d'origine</a></div>
   </div>
 </footer>
@@ -374,61 +374,63 @@ $('#reset').addEventListener('click',()=>{S.f=new Set([0,1,2]);S.per.clear();S.s
 function apply(fit){shown=R.filter(match);$('#nShown').textContent=fmt(shown.length);$('#nTab').textContent=fmt(shown.length);page=0;renderTable();updateMap(fit)}
 
 /* ---------- carte ---------- */
-let map=null,mapOK=false,placing=false,baseOK=null;
-const rasterPaint=()=>isDark()?{'raster-brightness-max':0.62,'raster-saturation':-0.35,'raster-contrast':0.1}:{'raster-brightness-max':1,'raster-saturation':0,'raster-contrast':0};
-const pal=()=>isDark()?{sea:'#11161f',land:'#232323',fr:'#2c2c2c',edge:'#4a4a4a',pot:'#8a8a8a',f:['#8c8cff','#6ba3e8','#f08a5d'],ring:'#fff',warn:'#fc5d00',bg:'#161616',sel:'#b1b1f9'}:{sea:'#e9eef5',land:'#f3f3f1',fr:'#ffffff',edge:'#c4c4c4',pot:'#8f8f8f',f:['#000091','#417dc4','#d1622e'],ring:'#fff',warn:'#b34000',bg:'#fff',sel:'#000091'};
+/* Fonds Carte facile (fab-geocommuns/carte-facile 0.10.2, Apache-2.0) ; repli sur un contour Natural Earth */
+let map=null,mapOK=false,placing=false,baseOK=null,CF=null,FOND=null,potFC={type:'FeatureCollection',features:[]},fondCur='desaturated';
+const MINE=['pot','ref','pend','sel'];
+const pal=()=>isDark()?{sea:'#11161f',land:'#232323',fr:'#2c2c2c',edge:'#4a4a4a',pot:'#8a8a8a',f:['#8c8cff','#6ba3e8','#f08a5d'],ring:'#fff',warn:'#fc5d00',bg:'#161616',sel:'#b1b1f9'}:{sea:'#e9eef5',land:'#f3f3f1',fr:'#ffffff',edge:'#c4c4c4',pot:'#7a7a7a',f:['#000091','#417dc4','#d1622e'],ring:'#fff',warn:'#b34000',bg:'#fff',sel:'#000091'};
 const fcRef=()=>({type:'FeatureCollection',features:shown.map(r=>({type:'Feature',properties:{i:r.i,f:r.f},geometry:{type:'Point',coordinates:[r.x,r.y]}}))});
 const fcPend=()=>({type:'FeatureCollection',features:$('#lPend').checked?items.filter(it=>it.type==='creation'&&status(it)==='en attente'&&it.x!=null).map(it=>({type:'Feature',properties:{k:it.k},geometry:{type:'Point',coordinates:[it.x,it.y]}})):[]});
-function initMap(fond){
+const fallbackStyle=()=>{const P=pal();return {version:8,sources:{fond:{type:'geojson',data:FOND,attribution:'Natural Earth'}},layers:[
+  {id:'sea',type:'background',paint:{'background-color':P.sea}},
+  {id:'land',type:'fill',source:'fond',paint:{'fill-color':['case',['==',['get','fr'],1],P.fr,P.land]}},
+  {id:'edge',type:'line',source:'fond',paint:{'line-color':P.edge,'line-width':0.8}}]}};
+const styleFor=k=>k==='none'||!CF||!CF[k]?fallbackStyle():JSON.parse(JSON.stringify(CF[k]));
+function addMine(){const P=pal();
+  map.addSource('pot',{type:'geojson',data:potFC});
+  map.addLayer({id:'pot',type:'circle',source:'pot',layout:{visibility:$('#lPot').checked?'visible':'none'},paint:{'circle-color':P.pot,'circle-opacity':0.55,'circle-radius':['interpolate',['linear'],['zoom'],4,1,8,2.2,12,4]}});
+  map.addSource('ref',{type:'geojson',data:fcRef()});
+  map.addLayer({id:'ref',type:'circle',source:'ref',paint:{'circle-color':['match',['get','f'],0,P.f[0],1,P.f[1],P.f[2]],'circle-radius':['interpolate',['linear'],['zoom'],4,3.8,9,6.5,13,9],'circle-stroke-color':P.ring,'circle-stroke-width':1.2}});
+  map.addSource('pend',{type:'geojson',data:fcPend()});
+  map.addLayer({id:'pend',type:'circle',source:'pend',paint:{'circle-color':P.bg,'circle-radius':['interpolate',['linear'],['zoom'],4,4.5,12,9],'circle-stroke-color':P.warn,'circle-stroke-width':2.5}});
+  map.addSource('sel',{type:'geojson',data:selFC});
+  map.addLayer({id:'sel',type:'circle',source:'sel',paint:{'circle-color':'transparent','circle-radius':13,'circle-stroke-color':P.sel,'circle-stroke-width':2.5}})}
+let selFC={type:'FeatureCollection',features:[]};
+function setFond(k){if(!map)return;fondCur=k;map.setStyle(styleFor(k),{diff:false})}
+function initMap(fond,cf){FOND=fond;CF=cf;
   if(!window.maplibregl){$('#map').innerHTML='<p class="nomap">La carte interactive n\'a pas pu se charger. Le tableau et les statistiques restent disponibles.</p>';return}
-  const P=pal();
-  try{map=new maplibregl.Map({container:'map',bounds:[[-5.4,41.2],[9.8,51.2]],fitBoundsOptions:{padding:20},attributionControl:false,dragRotate:false,pitchWithRotate:false,
-   style:{version:8,sources:{fond:{type:'geojson',data:fond},
-     plan:{type:'raster',tileSize:256,maxzoom:19,attribution:'Plan IGN © IGN – Géoplateforme',tiles:['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png']},
-     ortho:{type:'raster',tileSize:256,maxzoom:19,attribution:'Photographies aériennes © IGN – Géoplateforme',tiles:['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg']}},
-    layers:[
-    {id:'sea',type:'background',paint:{'background-color':P.sea}},
-    {id:'land',type:'fill',source:'fond',paint:{'fill-color':['case',['==',['get','fr'],1],P.fr,P.land]}},
-    {id:'edge',type:'line',source:'fond',paint:{'line-color':P.edge,'line-width':0.8}},
-    {id:'plan',type:'raster',source:'plan',paint:rasterPaint()},
-    {id:'ortho',type:'raster',source:'ortho',layout:{visibility:'none'}}]}})}
+  if(!CF){fondCur='none';$('#fondSel').value='none';$('#fondSel').disabled=true}
+  try{map=new maplibregl.Map({container:'map',bounds:[[-5.4,41.2],[9.8,51.2]],fitBoundsOptions:{padding:20},attributionControl:false,dragRotate:false,pitchWithRotate:false,style:styleFor(fondCur)})}
   catch(e){$('#map').innerHTML='<p class="nomap">La carte interactive nécessite WebGL, indisponible ici. Le tableau et les statistiques restent disponibles.</p>';return}
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
-  map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-  let tileErr=0;
-  map.on('error',e=>{if(e&&e.sourceId&&(e.sourceId==='plan'||e.sourceId==='ortho')&&++tileErr===3&&baseOK!==true){baseOK=false;for(const l of ['plan','ortho'])map.setLayoutProperty(l,'visibility','none');$('#fondSel').disabled=true;$('#fondNote').hidden=false}});
-  map.on('sourcedata',e=>{if(e.sourceId==='plan'&&e.tile&&e.tile.state==='loaded')baseOK=true});
+  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Fonds <a href="https://fab-geocommuns.github.io/carte-facile-site/">Carte facile</a> · © IGN – Géoplateforme'}),'bottom-right');
   map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-right');
-  map.on('load',()=>{const P=pal();mapOK=true;
-    map.addSource('pot',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    map.addLayer({id:'pot',type:'circle',source:'pot',layout:{visibility:'none'},paint:{'circle-color':P.pot,'circle-opacity':0.5,'circle-radius':['interpolate',['linear'],['zoom'],4,1,8,2.2,12,4]}});
-    map.addSource('ref',{type:'geojson',data:fcRef()});
-    map.addLayer({id:'ref',type:'circle',source:'ref',paint:{'circle-color':['match',['get','f'],0,P.f[0],1,P.f[1],P.f[2]],'circle-radius':['interpolate',['linear'],['zoom'],4,3.6,9,6,13,9],'circle-stroke-color':P.ring,'circle-stroke-width':1}});
-    map.addSource('pend',{type:'geojson',data:fcPend()});
-    map.addLayer({id:'pend',type:'circle',source:'pend',paint:{'circle-color':P.bg,'circle-radius':['interpolate',['linear'],['zoom'],4,4.5,12,9],'circle-stroke-color':P.warn,'circle-stroke-width':2.5}});
-    map.addSource('sel',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    map.addLayer({id:'sel',type:'circle',source:'sel',paint:{'circle-color':'transparent','circle-radius':13,'circle-stroke-color':P.sel,'circle-stroke-width':2.5}});
-    for(const l of ['ref','pend','pot']){map.on('mouseenter',l,()=>{if(!placing)map.getCanvas().style.cursor='pointer'});map.on('mouseleave',l,()=>{if(!placing)map.getCanvas().style.cursor=''})}
-    map.on('click',e=>{
-      if(placing){placing=false;$('#mode').classList.remove('on');map.getCanvas().style.cursor='';openForm('creation',null,{x:+e.lngLat.lng.toFixed(5),y:+e.lngLat.lat.toFixed(5)});return}
-      const f=map.queryRenderedFeatures(e.point,{layers:['ref','pend','pot'].filter(l=>map.getLayer(l))});
-      if(!f.length)return;const g=f[0];
-      if(g.layer.id==='ref')openFiche(g.properties.i);else if(g.layer.id==='pend')openPending(g.properties.k);else openPot(g.properties.i)});
-  });
+  // repli si les tuiles des fonds ne peuvent pas être chargées (réseau, politique de sécurité de la page)
+  let tileErr=0;
+  map.on('error',e=>{if(fondCur==='none'||baseOK===true||!e||!e.sourceId||MINE.includes(e.sourceId))return;
+    if(++tileErr===3){baseOK=false;setFond('none');$('#fondSel').value='none';$('#fondSel').disabled=true;$('#fondNote').hidden=false}});
+  map.on('sourcedata',e=>{if(e.tile&&e.sourceId&&!MINE.includes(e.sourceId)&&e.sourceId!=='fond'&&e.tile.state==='loaded')baseOK=true});
+  map.on('style.load',()=>{if(!map.getSource('ref'))addMine();mapOK=true});
+  for(const l of ['ref','pend','pot']){map.on('mouseenter',l,()=>{if(!placing)map.getCanvas().style.cursor='pointer'});map.on('mouseleave',l,()=>{if(!placing)map.getCanvas().style.cursor=''})}
+  map.on('click',e=>{if(!mapOK)return;
+    if(placing){placing=false;$('#mode').classList.remove('on');map.getCanvas().style.cursor='';openForm('creation',null,{x:+e.lngLat.lng.toFixed(5),y:+e.lngLat.lat.toFixed(5)});return}
+    const f=map.queryRenderedFeatures(e.point,{layers:['ref','pend','pot'].filter(l=>map.getLayer(l))});
+    if(!f.length)return;const g=f[0];
+    if(g.layer.id==='ref')openFiche(g.properties.i);else if(g.layer.id==='pend')openPending(g.properties.k);else openPot(g.properties.i)});
 }
-function updateMap(fit){if(!mapOK)return;map.getSource('ref').setData(fcRef());map.getSource('pend').setData(fcPend());
+function updateMap(fit){if(!mapOK||!map.getSource('ref'))return;map.getSource('ref').setData(fcRef());map.getSource('pend').setData(fcPend());
   if(fit&&S.dep&&shown.length){const xs=shown.map(r=>r.x),ys=shown.map(r=>r.y);map.fitBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:60,maxZoom:12})}
   else if(fit&&!S.dep)map.fitBounds([[-5.4,41.2],[9.8,51.2]],{padding:20})}
-function select(x,y){if(mapOK)map.getSource('sel').setData(x==null?{type:'FeatureCollection',features:[]}:{type:'Feature',geometry:{type:'Point',coordinates:[x,y]}})}
-function themeMap(){if(!mapOK)return;const P=pal();map.setPaintProperty('sea','background-color',P.sea);map.setPaintProperty('land','fill-color',['case',['==',['get','fr'],1],P.fr,P.land]);map.setPaintProperty('edge','line-color',P.edge);
-  map.setPaintProperty('ref','circle-color',['match',['get','f'],0,P.f[0],1,P.f[1],P.f[2]]);map.setPaintProperty('ref','circle-stroke-color',P.ring);map.setPaintProperty('pot','circle-color',P.pot);map.setPaintProperty('pend','circle-color',P.bg);map.setPaintProperty('pend','circle-stroke-color',P.warn);map.setPaintProperty('sel','circle-stroke-color',P.sel);const rp=rasterPaint();for(const k in rp)map.setPaintProperty('plan',k,rp[k])}
+function select(x,y){selFC=x==null?{type:'FeatureCollection',features:[]}:{type:'Feature',geometry:{type:'Point',coordinates:[x,y]}};if(mapOK&&map.getSource('sel'))map.getSource('sel').setData(selFC)}
+function themeMap(){if(!mapOK||!map.getLayer('ref'))return;const P=pal();
+  if(fondCur==='none'){map.setPaintProperty('sea','background-color',P.sea);map.setPaintProperty('land','fill-color',['case',['==',['get','fr'],1],P.fr,P.land]);map.setPaintProperty('edge','line-color',P.edge)}
+  map.setPaintProperty('ref','circle-color',['match',['get','f'],0,P.f[0],1,P.f[1],P.f[2]]);map.setPaintProperty('ref','circle-stroke-color',P.ring);map.setPaintProperty('pot','circle-color',P.pot);map.setPaintProperty('pend','circle-color',P.bg);map.setPaintProperty('pend','circle-stroke-color',P.warn);map.setPaintProperty('sel','circle-stroke-color',P.sel)}
 new MutationObserver(themeMap).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeMap);
 $('#lPot').addEventListener('change',async e=>{const on=e.target.checked;$('#lgPot').hidden=!on;if(!mapOK)return;
-  if(on&&!POTS){toast('Chargement des 42 411 espaces potentiels…');try{POTS=await load('potentiels');map.getSource('pot').setData({type:'FeatureCollection',features:POTS.map(p=>({type:'Feature',properties:{i:p[2]},geometry:{type:'Point',coordinates:[p[0],p[1]]}}))})}catch(_){toast('Espaces potentiels indisponibles');return}}
+  if(on&&!POTS){toast('Chargement des 42 411 espaces potentiels…');try{POTS=await load('potentiels');potFC={type:'FeatureCollection',features:POTS.map(p=>({type:'Feature',properties:{i:p[2]},geometry:{type:'Point',coordinates:[p[0],p[1]]}}))};map.getSource('pot').setData(potFC)}catch(_){toast('Espaces potentiels indisponibles');return}}
   map.setLayoutProperty('pot','visibility',on?'visible':'none')});
 $('#lPend').addEventListener('change',()=>updateMap());
-$('#fondSel').addEventListener('change',e=>{if(!mapOK)return;const v=e.target.value;map.setLayoutProperty('plan','visibility',v==='plan'?'visible':'none');map.setLayoutProperty('ortho','visibility',v==='ortho'?'visible':'none')});
+$('#fondSel').addEventListener('change',e=>{if(map)setFond(e.target.value)});
 
 /* ---------- fiche ---------- */
 const fiche=$('#fiche');
@@ -626,8 +628,8 @@ document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');i
 const inl=id=>{const e=document.getElementById('d-'+id);return e?JSON.parse(e.textContent):null};
 const load=async id=>inl(id)||(await fetch('data/'+id+'.json')).json();
 (async()=>{
-  try{const [r,d,f]=await Promise.all(['refuges','departements','fond'].map(load));
-    R=r;DEPS=d;R.forEach(x=>byId[x.i]=x);shown=R.slice();buildFilters();stats();qa();renderTable();initMap(f)}
+  try{const [r,d,f,cf]=await Promise.all(['refuges','departements','fond','carte-facile'].map(id=>load(id).catch(()=>null)));
+    R=r;DEPS=d;R.forEach(x=>byId[x.i]=x);shown=R.slice();buildFilters();stats();qa();renderTable();initMap(f,cf)}
   catch(e){$('#carte').insertAdjacentHTML('afterbegin','<p class="alert">Les données n\'ont pas pu être chargées.</p>')}
   showTab(location.hash.slice(1)||'carte',false);
   initStore();
